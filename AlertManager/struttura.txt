@@ -1,0 +1,25 @@
+alert_manager/
+├── config/
+│   ├── config.yaml          # Filtri campi CAP e regole
+│   └── db_config.yaml       # Credenziali PostgreSQL
+├── data/
+│   ├── input_cap/           # CAP XML in input
+│   └── stored_cap/          # CAP XML completi archiviati
+├── app/
+│   ├── models/              # Modelli DB (SQLAlchemy)
+│   │   ├── alert.py         # Tabella Alert
+│   │   ├── area.py          # Tabella Area
+│   │   ├── info.py          # Tabella Info
+│   │   └── resource.py      # Tabella Resource
+│   ├── schemas/             # Pydantic (validazione)
+│   ├── services/
+│   │   ├── cap_parser.py    # Parsing XML → JSON filtato
+│   │   ├── db_service.py    # Connessione DB e query
+│   │   └── alert_service.py # Logica principale
+│   ├── utils/
+│   │   ├── file_watcher.py  # Monitora cartella input_cap
+│   │   └── config_loader.py # Carica YAML
+│   └── main.py              # FastAPI/Kafka
+├── tests/
+├── Dockerfile
+└── requirements.txt
