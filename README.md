@@ -16,17 +16,28 @@
 │   └── config/
 │       └── config.yaml
 │
-├── /alert-service               # Microservizio Gestore degli Alert
+├── /AlertManager              # Microservizio Gestore degli Alert
 │   ├── /app
 │   │   ├── _init_.py
+│   │   ├── main.py      
 │   │   ├── controllers/
-│   │   │   └── alert_controller.py
+│   │   │   └── notifications_controller.py
 │   │   ├── services/
-│   │   │   └── alert_service.py
+│   │   │   └── notifications_service.py
+│   │   └── utils/
+│   │       └── cap_utils.py
 │   │   └── models/
-│   │       └── alert.py
+│   │       └── notification.py
 │   ├── Dockerfile
 │   ├── requirements.txt
+│   └── test_caps/
+│       └── alert1.xml
+│       └── alert2.xml
+│       └── alert3.xml
+│       └── alert4.xml
+│       └── alert5.xml
+│   └── tests/
+│       └── test_alert.py
 │   └── config/
 │       └── config.yaml
 │
