@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pyyaml
+xmltodict
+jsonschema
+sqlalchemy
+psycopg2-binary
+geoalchemy2

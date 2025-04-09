@@ -1,0 +1,45 @@
+filtering_rules:
+  severity: 
+    - Extreme   # Indicates life-threatening situations requiring immediate action.
+    - Severe    # Serious emergencies needing urgent action.
+    - Moderate  # Moderate-level events that might disrupt but are less critical.
+
+  urgency: 
+    - Immediate # Action is required instantly to address the emergency.
+    - Expected  # Action is required soon but not immediately (e.g., a forecasted event).
+
+  category: 
+    - Fire      # Fire-related emergencies within or near the building.
+    - Geo       # Geological events like earthquakes or landslides.
+    - Safety    # Physical safety risks, e.g., intrusions or accidents.
+    - Health    # Emergencies impacting health, like epidemics or contamination.
+    - Env       # Environmental hazards, such as chemical spills or radiation.
+    - Infra     # Infrastructure issues like power outages or structural failures.
+    - Rescue    # Events involving rescue operations or evacuations.
+    - Security  # Alerts related to digital or cybersecurity breaches.
+
+  certainty: 
+    - Observed  # Confirmed emergency events that have been directly observed.
+    - Likely    # High probability of occurrence but not yet confirmed.
+
+  scope:
+    - Public    # Alerts intended for the general public, including occupants of the building.
+    - Private   # Alerts specific to individuals or smaller groups within the building.
+
+  keywords: 
+    - "evacuate"   # Key term indicating evacuation instructions.
+    - "fire"       # Specific mention of fire emergencies.
+    - "earthquake" # Mention of seismic activity or related emergencies.
+    - "gas leak"   # References to hazardous gas situations.
+    - "collapse"   # Indicates structural failures, e.g., wall or ceiling collapses.
+
+  time_window:
+    max_age_minutes: 30  # Excludes alerts that are more than 10 minutes old to ensure relevance.
+
+  area:
+    type: "building"        # Specifies that the rules apply to building-related emergencies.
+    area_of_interest:       # Defines the geographic area of concern:
+      latitude: 44.1397     # Latitude for the building's location.
+      longitude: 12.2430    # Longitude for the building's location.
+      radius_km: 2          # Radius (in kilometers) around the building to consider.
+

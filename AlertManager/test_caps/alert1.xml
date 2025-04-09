@@ -1,0 +1,20 @@
+<alert>
+    <identifier>fire-001</identifier>
+    <sender>fire.department@example.com</sender>
+    <sent>2025-04-09T13:00:00Z</sent>
+    <status>Actual</status>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <info>
+        <category>Fire</category>
+        <event>Building Fire</event>
+        <urgency>Immediate</urgency>
+        <severity>Extreme</severity>
+        <certainty>Observed</certainty>
+        <description>A fire has been reported on the second floor of the building. Evacuate immediately.</description>
+        <area>
+            <areaDesc>Main Office Building</areaDesc>
+            <circle>44.1397,12.2430 2</circle>
+        </area>
+    </info>
+</alert>

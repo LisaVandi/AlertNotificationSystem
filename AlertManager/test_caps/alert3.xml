@@ -1,0 +1,20 @@
+<alert>
+    <identifier>safety-003</identifier>
+    <sender>safety.team@example.com</sender>
+    <sent>2025-04-09T13:10:00Z</sent>
+    <status>Actual</status>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <info>
+        <category>Safety</category>
+        <event>Gas Leak</event>
+        <urgency>Immediate</urgency>
+        <severity>Severe</severity>
+        <certainty>Observed</certainty>
+        <description>A gas leak has been detected on the ground floor. Avoid the area and evacuate through emergency exits.</description>
+        <area>
+            <areaDesc>Ground Floor</areaDesc>
+            <circle>44.1397,12.2430 1</circle>
+        </area>
+    </info>
+</alert>
