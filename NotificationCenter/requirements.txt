@@ -1,0 +1,4 @@
+Flask==2.0.2
+pika==1.2.0       # RabbitMQ client
+requests==2.26.0
+gunicorn==20.1.0
