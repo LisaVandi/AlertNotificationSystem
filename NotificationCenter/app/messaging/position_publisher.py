@@ -1,0 +1,1 @@
+# Publisher per richiedere le posizioni al Simulatore degli Spostamenti
