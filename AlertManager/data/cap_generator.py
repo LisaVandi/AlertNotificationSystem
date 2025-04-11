@@ -1,3 +1,9 @@
+"""
+This script selects a random CAP (Common Alerting Protocol) XML file from the input directory,
+parses its content, and stores a copy both as raw XML and as JSON in a history folder.
+Useful for logging and transforming alert messages into more usable formats.
+"""
+
 import os
 import random
 import json
