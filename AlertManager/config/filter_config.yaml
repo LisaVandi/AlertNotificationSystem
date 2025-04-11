@@ -1,0 +1,56 @@
+cap_filter:
+  event: 
+    - "Fire"
+    - "Earthquake"
+    - "Flood"
+    - "Hazardous Material"
+    - "Severe Weather"
+    - "Power Outage"
+  urgency: 
+    - "Immediate"
+    - "Expected"
+    - "Future"
+  severity: 
+    - "Extreme"
+    - "Severe"
+    - "Moderate"
+    - "Minor"
+  certainty: 
+    - "Observed"
+    - "Likely"
+  area:
+    - "Building A"
+    - "Building B"
+    - "Building C"
+    - "Parking Lot"
+    - "Surrounding Area"
+  responseType:
+    - "Shelter"
+    - "Evacuate"
+    - "Prepare"
+    - "Monitor"
+    - "AllClear"
+  status:
+    - "Actual"
+    - "Exercise"
+    - "System"
+    - "Test"
+  messageType:
+    - "Alert"
+    - "Update"
+    - "Cancel"
+    - "Ack"
+    - "Error"
+  scope:
+    - "Public"
+    - "Restricted"
+    - "Private"
+  optionalFields:
+    - "headline"
+    - "description"
+    - "instruction"
+    - "contact"
+    - "sent"
+    - "effective"
+    - "onset"
+    - "expires"
