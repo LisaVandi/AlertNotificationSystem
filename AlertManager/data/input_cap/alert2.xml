@@ -1,0 +1,27 @@
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CAP-IT-2023-0289</identifier>
+  <sender>ingv@protezionecivile.it</sender>
+  <sent>2023-06-16T03:15:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Geo</category>
+    <event>Terremoto</event>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <area>
+      <areaDesc>Provincia di L'Aquila</areaDesc>
+      <circle>42.35,13.40 20</circle>
+      <geocode>
+        <valueName>CODISTAT</valueName>
+        <value>066049</value>
+      </geocode>
+    </area>
+    <parameter>
+      <valueName>MAGNITUDO</valueName>
+      <value>5.8</value>
+    </parameter>
+  </info>
+</alert>

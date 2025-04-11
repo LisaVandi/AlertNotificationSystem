@@ -1,0 +1,23 @@
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CAP-IT-2023-0156</identifier>
+  <sender>protezionecivile@regione.piemonte.it</sender>
+  <sent>2023-06-15T14:30:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Fire</category>
+    <event>Incendio boschivo</event>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <area>
+      <areaDesc>Torino, collina di Superga</areaDesc>
+      <polygon>45.08,7.77 45.07,7.76 45.06,7.78</polygon>
+    </area>
+    <parameter>
+      <valueName>COLORE_ALLERTA</valueName>
+      <value>ROSSO</value>
+    </parameter>
+  </info>
+</alert>
