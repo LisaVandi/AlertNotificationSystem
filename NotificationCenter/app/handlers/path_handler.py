@@ -1,1 +1,1 @@
-# Logic for requesting positions.
+# Logic for sending evacuation path to User Simulator via PUSH notification.

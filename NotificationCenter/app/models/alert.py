@@ -1,1 +1,0 @@
-# Data model for alert messages

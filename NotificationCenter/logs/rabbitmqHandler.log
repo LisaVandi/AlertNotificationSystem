@@ -1,0 +1,8 @@
+2025-04-17 12:28:06,878 - INFO - RabbitMQ connection established
+2025-04-17 12:28:06,891 - INFO - RabbitMQ connection established
+2025-04-17 12:28:06,892 - INFO - Declared queue: alert_queue
+2025-04-17 12:28:06,893 - INFO - Declared queue: map_queue
+2025-04-17 12:28:06,894 - INFO - Declared queue: userSimulator_queue
+2025-04-17 12:28:06,895 - INFO - Declared queue: position_request_queue
+2025-04-17 12:28:06,896 - INFO - Declared queue: evacuation_paths_queue
+2025-04-17 12:28:09,911 - INFO - RabbitMQ connection closed
