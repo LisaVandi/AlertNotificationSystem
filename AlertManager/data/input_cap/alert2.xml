@@ -1,27 +1,20 @@
 <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
-  <identifier>CAP-IT-2023-0289</identifier>
-  <sender>ingv@protezionecivile.it</sender>
-  <sent>2023-06-16T03:15:00+01:00</sent>
+  <identifier>CAP-IT-2023-0999</identifier>
+  <sender>comune.villaggio@example.it</sender>
+  <sent>2023-06-18T15:45:00+02:00</sent>
   <status>Actual</status>
   <msgType>Alert</msgType>
-  <scope>Public</scope>
+  <scope>Private</scope>
   <info>
-    <category>Geo</category>
-    <event>Terremoto</event>
-    <urgency>Expected</urgency>
-    <severity>Severe</severity>
-    <certainty>Likely</certainty>
+    <category>Safety</category>
+    <event>Gas Leak</event> <!-- Non incluso nel filtro! -->
+    <urgency>Past</urgency> <!-- Valore non ammesso! -->
+    <severity>Low</severity> <!-- Valore non ammesso! -->
+    <certainty>Possible</certainty> <!-- Non incluso nel filtro! -->
     <area>
-      <areaDesc>Provincia di L'Aquila</areaDesc>
-      <circle>42.35,13.40 20</circle>
-      <geocode>
-        <valueName>CODISTAT</valueName>
-        <value>066049</value>
-      </geocode>
+      <areaDesc>Building D</areaDesc> <!-- Area non monitorata! -->
+      <circle>45.130,9.460 0.5</circle>
     </area>
-    <parameter>
-      <valueName>MAGNITUDO</valueName>
-      <value>5.8</value>
-    </parameter>
+    <responseType>Ignore</responseType> <!-- Valore non ammesso! -->
   </info>
 </alert>
