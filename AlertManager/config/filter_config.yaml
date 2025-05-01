@@ -35,7 +35,7 @@ cap_filter:
     - "Exercise"
     - "System"
     - "Test"
-  messageType:
+  msgType:
     - "Alert"
     - "Update"
     - "Cancel"
