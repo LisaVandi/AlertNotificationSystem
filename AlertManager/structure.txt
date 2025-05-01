@@ -1,0 +1,22 @@
+alert_manager/
+├── api/
+│   └── send_msg.py         # Invia il messaggio al Centro Notifiche
+├── config/
+│   └── filter_config.yaml          # Filtri campi CAP e regole
+├── data/
+│   ├── cap_generator.py     # CAP generatore
+│   ├── input_cap/           # CAP XML in input
+│   └── stored_cap/          # CAP XML completi archiviati
+├── db/
+│   ├── db_setup.py          # Crea la struttura del db
+│   ├── db_connection.py     # Verifica la connessione con il db
+│   └── process_and_insert.py   # Processa il CAP e se necessario lo inserisce nel db
+├── tests/
+│   ├── test_connection.py   # Verifica la connessione al db
+│   ├── test_filters.py      # Controlla il filtraggio basato su config.yalm
+│   ├── test_consumer.py     # Verifica la ricezione del messaggio sulla coda
+│   └── test_send_msg.py     # Verifica l'invio del messaggio sulla coda
+├── utils/
+│   └── filter.py            # Utilizzo dei filtri
+├── __init__.py
+└── main.py
