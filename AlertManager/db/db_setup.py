@@ -11,7 +11,7 @@ data support (e.g., polygons and circles). Indexes are added to optimize query p
 You can customize the tables by removing or adapting fields according to your project's needs.
 """
 
-from db_connection import create_connection 
+from db.db_connection import create_connection 
 
 def create_tables():
     conn = create_connection()
@@ -33,7 +33,6 @@ def create_tables():
             scope VARCHAR(50) NOT NULL                 -- Distribution scope (public, restricted, private)
         );
     ''')
-
 
     # Creazione della tabella 'alert_info' (blocco di info aggiuntive)
     cursor.execute('''
@@ -67,7 +66,7 @@ def create_tables():
         );
     ''')
 
-# Creazione di indici per ottimizzare le query
+    # Creazione di indici per ottimizzare le query
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_info_alert_id ON info(alert_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_areas_alert_id ON areas(alert_id);")
 
