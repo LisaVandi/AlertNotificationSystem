@@ -1,12 +1,12 @@
 import sys
 import os
 
-# Aggiungi la cartella principale al sys.path
+# Add the main folder to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-
 from AlertManager.utils.filter import process_cap
-# Crea un esempio di CAP alert (in formato dizionario)
+
+# Create an example CAP alert (in dictionary format)
 cap_alert = {
     "event": "Fire",
     "urgency": "Immediate",
@@ -19,10 +19,10 @@ cap_alert = {
     "scope": "Public"
 }
 
-# Carica e applica il filtro
+# Load and apply the filter
 result = process_cap(cap_alert)
 
-# Mostra il risultato
+# Show the result
 if result:
     print("Alert passed the filter!")
 else:

@@ -2,7 +2,7 @@ import yaml
 import logging
 import json
 
-# Configura il logger
+# Configure the logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,20 +15,20 @@ def process_cap(cap_dict, filter_config):
     info_blocks = cap_dict.get("info")
 
     if isinstance(info_blocks, dict):
-        info_blocks = [info_blocks]  # Uniformiamo in lista
+        info_blocks = [info_blocks]  # Normalize to list
 
     if not info_blocks:
-        logger.debug("❌ Nessun blocco 'info' trovato.")
+        logger.debug("❌ No 'info' block found.")
         return False
 
     for info in info_blocks:
-        logger.debug(f"🔍 Verifica blocco info: {json.dumps(info, indent=2)}")
+        logger.debug(f"🔍 Checking info block: {json.dumps(info, indent=2)}")
 
         if "event" in f:
             cap_event = info.get("event")
             if isinstance(cap_event, list):
                 if not any(event in f["event"] for event in cap_event):
-                    continue  # questo blocco info non passa
+                    continue  # this info block does not pass
             elif cap_event not in f["event"]:
                 continue
 
@@ -44,7 +44,7 @@ def process_cap(cap_dict, filter_config):
         if "responseType" in f and info.get("responseType") not in f["responseType"]:
             continue
 
-        # Check delle aree solo se definite
+        # Check areas only if defined
         area_descriptions = [
             area.get("areaDesc") for area in info.get("areas", []) if area.get("areaDesc")
         ]
@@ -52,9 +52,9 @@ def process_cap(cap_dict, filter_config):
             if not any(area in f["area"] for area in area_descriptions):
                 continue
 
-        # Se è arrivato fino a qui, questo blocco info ha passato tutti i filtri
-        logger.debug("✅ Blocco info passato. Alert valido.")
+        # If it reached here, this info block passed all the filters
+        logger.debug("✅ Info block passed. Valid alert.")
         return True
 
-    logger.debug("❌ Nessun blocco info ha passato i filtri.")
+    logger.debug("❌ No info block passed the filters.")
     return False

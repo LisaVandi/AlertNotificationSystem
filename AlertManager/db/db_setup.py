@@ -21,7 +21,7 @@ def create_tables():
 
     cursor = conn.cursor() 
 
-    #creazione della tabella 'alerts'
+    # Creating the 'alerts' table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS alerts (
             id SERIAL PRIMARY KEY,                      -- Unique auto-incremented ID
@@ -29,12 +29,12 @@ def create_tables():
             sender VARCHAR(255) NOT NULL,               -- Alert originator
             sent TIMESTAMP NOT NULL,                    -- Alert creation timestamp
             status VARCHAR(50) NOT NULL,                -- Handling status (actual, exercise, system, test, draft)
-            msgType VARCHAR(50) NOT NULL,              -- Message type (alert, update, cancel, ack, error)
-            scope VARCHAR(50) NOT NULL                 -- Distribution scope (public, restricted, private)
+            msgType VARCHAR(50) NOT NULL,               -- Message type (alert, update, cancel, ack, error)
+            scope VARCHAR(50) NOT NULL                  -- Distribution scope (public, restricted, private)
         );
     ''')
 
-    # Creazione della tabella 'alert_info' (blocco di info aggiuntive)
+    # Creating the 'info' table (additional information block for the alert)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS info (
             id SERIAL PRIMARY KEY,                                      -- Unique auto-incremented ID
@@ -53,20 +53,20 @@ def create_tables():
         );
     ''')
 
-    # Creazione della tabella 'areas' (aree geografiche associate all'alert)
+    # Creating the 'areas' table (geographical areas associated with the alert)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS areas (
             id SERIAL PRIMARY KEY,                                      -- Unique auto-incremented ID
             alert_id INT REFERENCES alerts(id) ON DELETE CASCADE,       -- Reference to the main alert
                 
             areaDesc TEXT,                                              -- Area description  
-            geometry_type VARCHAR(50),                                  -- Tipo di geometria (poligono o area)
-            geom GEOMETRY,                                              -- Geometria dell'area 
-            altitude FLOAT                                           -- Altitude of the affected area (meters)
+            geometry_type VARCHAR(50),                                  -- Type of geometry (polygon or area)
+            geom GEOMETRY,                                              -- Geometry of the area 
+            altitude FLOAT                                              -- Altitude of the affected area (meters)
         );
     ''')
 
-    # Creazione di indici per ottimizzare le query
+    # Creating indexes to optimize queries
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_info_alert_id ON info(alert_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_areas_alert_id ON areas(alert_id);")
 

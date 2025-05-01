@@ -3,7 +3,7 @@ import json
 
 def callback(ch, method, properties, body):
     message = json.loads(body)
-    print("Messaggio ricevuto:", message)
+    print("Message received:", message)
 
 def listen_to_queue():
     rabbitmq_host = 'localhost'
@@ -16,7 +16,7 @@ def listen_to_queue():
 
     channel.basic_consume(queue=rabbitmq_queue, on_message_callback=callback, auto_ack=True)
 
-    print("🔄 In ascolto sulla coda. Premere CTRL+C per interrompere.")
+    print("🔄 Listening on the queue. Press CTRL+C to stop.")
     channel.start_consuming()
 
 if __name__ == "__main__":

@@ -6,13 +6,13 @@ import logging
 import psycopg2
 from psycopg2.extras import Json
 
-# Configura il logger
+# Configure the logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 logger.info(f"json module loaded: {json is not None}")
 
 def read_cap_from_file(file_path):
-    """Legge il file XML CAP e lo converte in dizionario."""
+    """Reads the CAP XML file and converts it into a dictionary."""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             cap_content = f.read()
@@ -24,7 +24,7 @@ def read_cap_from_file(file_path):
         return {}
 
 def map_cap_to_db_fields(cap_alert):
-    """Mappa i dati del CAP ai campi della tabella alerts (solo i campi necessari)."""
+    """Maps the CAP data to the database fields (only the necessary fields)."""
     return {
         "identifier": cap_alert.get("identifier"),
         "sender": cap_alert.get("sender"),
@@ -36,39 +36,39 @@ def map_cap_to_db_fields(cap_alert):
 
 def get_relevant_alert_fields(alert_dict, filter_config):
     """
-    Verifica la rilevanza dei campi principali dell'alert (come identifier, sender, status, etc.)
-    rispetto alla configurazione del filtro.
+    Verifies the relevance of the main alert fields (such as identifier, sender, status, etc.)
+    according to the filter configuration.
     """
-    cap_filter = filter_config.get("cap_filter", {}) 
+    cap_filter = filter_config.get("cap_filter", {})
 
     for field in ['status', 'msgType', 'scope']:
         if field in alert_dict and alert_dict[field].strip().lower() not in [f.lower() for f in cap_filter.get(field, [])]:
-            logger.debug(f"⚠️ Campo '{field}' non rilevante per il filtro.")
+            logger.debug(f"⚠️ Field '{field}' is not relevant according to the filter.")
             return False
     return True
 
 def process_and_insert(cap_dict, conn, filter_config):
     """
-    Funzione per elaborare e inserire i dati del CAP nel database.
+    Processes and inserts the CAP data into the database.
     """
-    logger.debug(f"Processo di inserimento: cap_dict = {json.dumps(cap_dict, indent=2)}, filter_config = {json.dumps(filter_config, indent=2)}")
+    logger.debug(f"Insertion process: cap_dict = {json.dumps(cap_dict, indent=2)}, filter_config = {json.dumps(filter_config, indent=2)}")
 
     try:
         cursor = conn.cursor()
         alert_id_str = cap_dict.get("identifier")
 
         if not alert_id_str:
-            logger.error("⚠️ Alert ID mancante nel dizionario.")
+            logger.error("⚠️ Alert ID missing in the dictionary.")
             return
 
-        logger.info(f"🔧 Inserimento dei dati dell'alert con ID: {alert_id_str}")
+        logger.info(f"🔧 Inserting data for the alert with ID: {alert_id_str}")
 
-        # Verifica la rilevanza del blocco 'alert'
+        # Check relevance of the 'alert' block
         if not get_relevant_alert_fields(cap_dict, filter_config):
-            logger.warning("❌ Alert non rilevante a livello di campo 'alert'. Non processato.")
+            logger.warning("❌ Alert is not relevant at the 'alert' field level. Not processed.")
             return
 
-        # Inserimento nella tabella alerts
+        # Inserting into the alerts table
         cursor.execute('''
             INSERT INTO alerts (
                 identifier, sender, sent, status, msgType, scope
@@ -87,10 +87,10 @@ def process_and_insert(cap_dict, conn, filter_config):
 
         info = cap_dict.get("info")
         if isinstance(info, dict):
-            info = [info]  # uniforma a lista
+            info = [info]  # convert to list
 
         for alert_info in info:
-            # Inserimento nella tabella info
+            # Inserting into the info table
             cursor.execute('''
                 INSERT INTO info (
                     alert_id, category, event, urgency, severity, certainty,
@@ -109,7 +109,7 @@ def process_and_insert(cap_dict, conn, filter_config):
                 alert_info.get("instruction")
             ))
 
-            # Inserimento nella tabella areas
+            # Inserting into the areas table
             areas = alert_info.get("areas", [])
             for area in areas:
                 geom = area.get("geom")
@@ -123,44 +123,44 @@ def process_and_insert(cap_dict, conn, filter_config):
                         ''', (
                             alert_db_id,
                             area.get("areaDesc"),
-                            geom.get("type"),  # es. "Polygon"
+                            geom.get("type"),  # e.g. "Polygon"
                             geom_json,
                             area.get("altitude")
                         ))
                     except Exception as e:
-                        logger.error(f"⚠️ Errore nella geometria dell'area: {e}")
+                        logger.error(f"⚠️ Error with the area geometry: {e}")
                         continue
 
         conn.commit()
-        logger.info("✅ Alert inserito nel database.")
+        logger.info("✅ Alert successfully inserted into the database.")
 
     except Exception as e:
-        logger.error(f"⚠️ Errore durante l'inserimento nel database: {e}")
+        logger.error(f"⚠️ Error during insertion into the database: {e}")
         conn.rollback()
     finally:
         cursor.close()
 
 
 def process_and_insert_alert(cap_alert, filter_config, conn=None):
-    # Log per verificare cosa arriva come parametro
+    # Log to verify what is being passed as a parameter
     logger.debug(f"Cap alert: {json.dumps(cap_alert, indent=2)}")
     logger.debug(f"Filter config: {json.dumps(filter_config, indent=2)}")
 
-    # Assicurati che filter_config sia un dizionario e non venga trattato come un file
+    # Ensure that filter_config is a dictionary and not a file
     if not isinstance(filter_config, dict):
-        logger.error("❌ Il filtro non è un dizionario, ma un oggetto di tipo: {}".format(type(filter_config)))
+        logger.error(f"❌ The filter is not a dictionary, but an object of type: {type(filter_config)}")
         return
 
-    # Controlla che la connessione sia corretta
+    # Check that the connection is valid
     if conn is None:
-        logger.error("❌ Connessione al database non fornita.")
+        logger.error("❌ Database connection not provided.")
         return
     else:
-        logger.debug("✅ Connessione al database valida.")
+        logger.debug("✅ Database connection is valid.")
     
-    # Verifica che venga chiamata correttamente la funzione di inserimento
+    # Ensure that the insertion function is correctly called
     try:
-        process_and_insert(cap_alert, conn, filter_config)  # Assicurati che cap_alert, conn e filter_config siano ok
-        logger.info("✅ Alert inserito nel database.")
+        process_and_insert(cap_alert, conn, filter_config)  # Ensure cap_alert, conn, and filter_config are valid
+        logger.info("✅ Alert successfully inserted into the database.")
     except Exception as e:
-        logger.error(f"❌ Errore nell'inserimento nel database: {e}")
+        logger.error(f"❌ Error during insertion into the database: {e}")
