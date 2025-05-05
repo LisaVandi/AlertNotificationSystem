@@ -1,0 +1,4 @@
+psycopg2
+fastapi
+opencv-python
+uvicorn
