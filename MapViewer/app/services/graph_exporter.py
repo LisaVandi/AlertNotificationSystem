@@ -3,7 +3,6 @@ This module provides a utility function to extract a graph representation (nodes
 from the database for a specific floor of a building. The result is a structured dictionary
 containing all data necessary to render a floor plan graph, including an image reference,
 dimensions, and graph elements.
-
 """
 import psycopg2
 import json
