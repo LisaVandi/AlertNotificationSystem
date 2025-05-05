@@ -1,20 +1,36 @@
 import json
 import pika
-from app.core.controller import SimulationController
+from typing import Callable
+from utils.logger import logger
 
-def start_consumer(controller: SimulationController, queue_name: str, host: str = "localhost"):
-    def callback(ch, method, properties, body):
+class UserSimulatorConsumer:
+    def __init__(self, rabbitmq_url: str, queue_name: str, callback: Callable):
+        self.rabbitmq_url = rabbitmq_url
+        self.queue_name = queue_name
+        self.callback = callback
+
+    def start_consuming(self):
         try:
-            message = json.loads(body)
-            command = message.get("command")
-            payload = message.get("payload", {})
-            controller.handle_command(command, payload)
-        except Exception as e:
-            print(f"Error processing message: {e}")
+            params = pika.URLParameters(self.rabbitmq_url)
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
-    channel = connection.channel()
-    channel.queue_declare(queue=queue_name, durable=True)
-    channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
-    print(" [*] Waiting for commands...")
-    channel.start_consuming()
+            channel.queue_declare(queue=self.queue_name, durable=True)
+            logger.info(f"✅ Listening on queue: {self.queue_name}")
+
+            def on_message(ch, method, properties, body):
+                try:
+                    message = json.loads(body.decode("utf-8"))
+                    logger.info(f"📩 Received message: {message}")
+                    self.callback(message)
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                except Exception as e:
+                    logger.error(f"❌ Error processing message: {str(e)}")
+                    ch.basic_nack(delivery_tag=method.delivery_tag)
+
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(queue=self.queue_name, on_message_callback=on_message)
+
+            channel.start_consuming()
+        except Exception as e:
+            logger.error(f"❌ Error starting consumer: {str(e)}")
