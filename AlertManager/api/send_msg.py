@@ -1,6 +1,12 @@
 # send_msg.py
 import logging
 from typing import Dict, Any
+
+import sys
+import os
+# Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.config.settings import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
 from NotificationCenter.app.config.logging import setup_logging
