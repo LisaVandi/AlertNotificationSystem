@@ -1,0 +1,40 @@
+time_slots:
+  - name: "lezioni_mattina"
+    start: "08:00"
+    end: "11:00"
+    distribution:
+      aule: 0.7
+      corridoi: 0.1
+      punti_ristoro: 0.05
+      uffici: 0.1
+      bagni: 0.05
+
+  - name: "pausa_mattina"
+    start: "11:00"
+    end: "11:30"
+    distribution:
+      aule: 0.1
+      corridoi: 0.1
+      punti_ristoro: 0.6
+      uffici: 0.1
+      bagni: 0.1
+
+  - name: "lezioni_pomeriggio"
+    start: "14:00"
+    end: "17:00"
+    distribution:
+      aule: 0.6
+      corridoi: 0.15
+      punti_ristoro: 0.1
+      uffici: 0.1
+      bagni: 0.05
+
+  - name: "fine_giornata"
+    start: "17:00"
+    end: "19:00"
+    distribution:
+      aule: 0.05
+      corridoi: 0.1
+      punti_ristoro: 0.3
+      uffici: 0.5
+      bagni: 0.05
