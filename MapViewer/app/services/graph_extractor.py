@@ -9,7 +9,7 @@ from MapViewer.app.config.logging import setup_logging
 from MapViewer.app.config.settings import DATABASE_CONFIG
 
 # Logging setup
-logger = setup_logging("graph_extractor", "logs/graph_extractor.log")
+logger = setup_logging("graph_extractor", "MapViewer/logs/graph_extractor.log")
 
 # Load Z ranges config
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "z_ranges_config.json")

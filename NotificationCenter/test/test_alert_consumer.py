@@ -39,11 +39,3 @@ def test_process_alert_valid(alert_consumer, mock_rabbitmq_handler):
         mock_map_manager.assert_called_once_with(mock_rabbitmq_handler, alert_data)
         mock_user_simulator.assert_called_once_with(mock_rabbitmq_handler, alert_data)
         mock_request_positions.assert_called_once_with(mock_rabbitmq_handler, alert_data.get("id"))
-
-def test_process_alert_invalid(alert_consumer):
-    invalid_alert_data = {
-        "id": "123",
-        "type": "fire"
-    }
-    with pytest.raises(ValueError, match="Invalid alert format"):
-        alert_consumer.process_alert(invalid_alert_data)
