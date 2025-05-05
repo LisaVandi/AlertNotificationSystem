@@ -30,9 +30,6 @@ class AlertConsumer:
         try:
             logger.info(f"Received alert: {alert_data}")
             
-            if not self._validate_alert(alert_data):
-                raise ValueError("Invalid alert format")
-            
             # Forward to Map Manager
             send_alert_to_map_manager(self.rabbitmq, alert_data)
             
@@ -48,7 +45,3 @@ class AlertConsumer:
             logger.error(f"Error processing alert: {str(e)}")
             raise
 
-    def _validate_alert(self, alert_data: Dict[str, Any]) -> bool:
-        """Validate alert structure"""
-        required_fields = {"id", "type", "severity", "area"}
-        return all(field in alert_data for field in required_fields)
