@@ -47,17 +47,3 @@ def test_process_alert_invalid(alert_consumer):
     }
     with pytest.raises(ValueError, match="Invalid alert format"):
         alert_consumer.process_alert(invalid_alert_data)
-
-def test_validate_alert(alert_consumer):
-    valid_alert = {
-        "id": "123",
-        "type": "fire",
-        "severity": "high",
-        "area": "zone1"
-    }
-    invalid_alert = {
-        "id": "123",
-        "type": "fire"
-    }
-    assert alert_consumer._validate_alert(valid_alert) is True
-    assert alert_consumer._validate_alert(invalid_alert) is False

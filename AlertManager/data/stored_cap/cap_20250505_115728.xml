@@ -1,0 +1,25 @@
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CAP-IT-2023-0156</identifier>
+  <sender>protezionecivile@regione.lombardia.it</sender>
+  <sent>2023-06-18T14:30:00+02:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Fire</category>
+    <event>Fire</event>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <area>
+      <areaDesc>Building A</areaDesc>
+      <polygon>45.123,9.456 45.124,9.457 45.125,9.455</polygon>
+    </area>
+    <responseType>Evacuate</responseType>
+    <headline>Allarme incendio attivo</headline>
+    <description>Fumo visibile dal terzo piano</description>
+    <instruction>Uscire dall'edificio immediatamente</instruction>
+    <contact>112</contact>
+    <effective>2023-06-18T14:35:00+02:00</effective>
+  </info>
+</alert>

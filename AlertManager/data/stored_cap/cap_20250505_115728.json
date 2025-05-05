@@ -1,0 +1,52 @@
+{
+  "identifier": "CAP-IT-2023-0156",
+  "sender": "protezionecivile@regione.lombardia.it",
+  "sent": "2023-06-18T14:30:00+02:00",
+  "status": "Actual",
+  "msgType": "Alert",
+  "scope": "Public",
+  "info": [
+    {
+      "category": "Fire",
+      "event": "Fire",
+      "urgency": "Immediate",
+      "severity": "Extreme",
+      "certainty": "Observed",
+      "responseType": "Evacuate",
+      "headline": "Allarme incendio attivo",
+      "description": "Fumo visibile dal terzo piano",
+      "instruction": "Uscire dall'edificio immediatamente",
+      "contact": "112",
+      "effective": "2023-06-18T14:35:00+02:00",
+      "areas": [
+        {
+          "areaDesc": "Building A",
+          "polygon": "45.123,9.456 45.124,9.457 45.125,9.455",
+          "geom": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.456,
+                  45.123
+                ],
+                [
+                  9.457,
+                  45.124
+                ],
+                [
+                  9.455,
+                  45.125
+                ],
+                [
+                  9.456,
+                  45.123
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
