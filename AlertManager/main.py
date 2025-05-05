@@ -6,7 +6,7 @@ from utils.filter import process_cap, load_filter_config
 from db.db_setup import create_tables
 from db.process_and_insert import process_and_insert_alert  # Use process_and_insert
 from db.db_connection import create_connection
-from api.send_msg import send_json_to_microservice
+from api.send_msg import AlertProducer
 import logging
 import json
 
@@ -64,9 +64,10 @@ def main():
 
             # 9. Send the data to the microservice as a JSON message
             logger.info("📡 Sending the data to the microservice...")
-            send_json_to_microservice(cap_dict)  # Pass the data to the microservice
+            producer = AlertProducer()
+            producer.send_alert(cap_dict)
+            producer.close()
             logger.info("✅ Data sent to the microservice.")
-
             # 10. Attempt to save in the DB (even if it fails, sending is already done)
             try:
                 logger.info("📥 Inserting the alert into the database...")
