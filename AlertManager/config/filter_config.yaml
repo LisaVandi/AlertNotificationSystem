@@ -39,8 +39,6 @@ cap_filter:
     - "Alert"
     - "Update"
     - "Cancel"
-    - "Ack"
-    - "Error"
   scope:
     - "Public"
     - "Restricted"

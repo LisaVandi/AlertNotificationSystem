@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 # Database connection configuration
 DB_NAME = "alert_db"  # Your database name
-DB_USER = "alert_user"  # Database user name
-DB_PASSWORD = "Passworduser"  # Database password
+DB_USER = "postgres"  # Database user name
+DB_PASSWORD = "postgres"  # Database password
 DB_HOST = "localhost"  # Server address
 DB_PORT = "5432"  # Default PostgreSQL port
 
