@@ -8,3 +8,5 @@ DATABASE_CONFIG = {
 }
 
 # Map settings: parameters for map rendering and display 
+imageWidth = 1200
+imageHeight = 800

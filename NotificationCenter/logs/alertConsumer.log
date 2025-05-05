@@ -1,12 +1,12 @@
-2025-04-17 12:28:06,897 - INFO - Alert sent to alert_queue: {'id': '12345', 'type': 'Fire', 'severity': 'High', 'area': 'Zone A'}
-2025-04-17 12:28:06,906 - INFO - Received alert: {'id': '12345', 'type': 'Fire', 'severity': 'High', 'area': 'Zone A'}
-2025-04-17 12:28:06,913 - INFO - Alert processed successfully
-2025-04-17 12:28:07,899 - INFO - Alert sent to alert_queue: {'id': '67890', 'type': 'Flood', 'severity': 'Medium', 'area': 'Zone B'}
-2025-04-17 12:28:07,903 - INFO - Received alert: {'id': '67890', 'type': 'Flood', 'severity': 'Medium', 'area': 'Zone B'}
-2025-04-17 12:28:07,908 - INFO - Alert processed successfully
-2025-04-17 12:28:08,900 - INFO - Alert sent to alert_queue: {'id': '11111', 'type': 'Tornado', 'severity': 'Low', 'area': 'Zone C'}
-2025-04-17 12:28:08,904 - INFO - Received alert: {'id': '11111', 'type': 'Tornado', 'severity': 'Low', 'area': 'Zone C'}
-2025-04-17 12:28:08,910 - INFO - Alert processed successfully
-2025-04-17 12:28:09,912 - INFO - AlertProducer closed
-2025-04-17 12:28:09,913 - INFO - Alert Consumer initialized
-2025-04-17 12:28:09,913 - INFO - Starting alert consumer
+2025-05-05 08:08:36,672 - INFO - Alert sent to alert_queue: {'id': '12345', 'type': 'Fire', 'severity': 'High', 'area': 'Zone A'}
+2025-05-05 08:08:37,674 - INFO - Alert sent to alert_queue: {'id': '67890', 'type': 'Flood', 'severity': 'Medium', 'area': 'Zone B'}
+2025-05-05 08:08:38,674 - INFO - Alert sent to alert_queue: {'id': '11111', 'type': 'Tornado', 'severity': 'Low', 'area': 'Zone C'}
+2025-05-05 08:08:39,680 - INFO - AlertProducer closed
+2025-05-05 08:08:39,681 - INFO - Alert Consumer initialized
+2025-05-05 08:08:39,681 - INFO - Starting alert consumer
+2025-05-05 08:08:39,685 - INFO - Received alert: {'id': '12345', 'type': 'Fire', 'severity': 'High', 'area': 'Zone A'}
+2025-05-05 08:08:39,687 - INFO - Alert processed successfully
+2025-05-05 08:08:39,688 - INFO - Received alert: {'id': '67890', 'type': 'Flood', 'severity': 'Medium', 'area': 'Zone B'}
+2025-05-05 08:08:39,689 - INFO - Alert processed successfully
+2025-05-05 08:08:39,690 - INFO - Received alert: {'id': '11111', 'type': 'Tornado', 'severity': 'Low', 'area': 'Zone C'}
+2025-05-05 08:08:39,691 - INFO - Alert processed successfully

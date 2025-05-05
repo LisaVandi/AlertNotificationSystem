@@ -12,10 +12,11 @@ CREATE TABLE user_historical_position (
     x INTEGER, -- effective x position
     y INTEGER, -- effective y position
     z INTEGER, -- effective z position
-    id INTEGER, -- node_id
+    node_id INTEGER, -- node_id
     position_type VARCHAR(50),
     danger VARCHAR(50), -- danger level for a specific area
-    PRIMARY KEY (user_id, id)
+    PRIMARY KEY (user_id, node_id),
+    FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 );
 
 -- Table for map nodes

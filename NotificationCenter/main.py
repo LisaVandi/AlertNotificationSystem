@@ -34,6 +34,7 @@ def main():
         rabbitmq_handler.declare_queue(queue)
 
     # Test alert messages to be sent
+    # messaggio di allerta in json da Beatrice 
     alert_messages = [
         {"id": "12345", "type": "Fire", "severity": "High", "area": "Zone A"},
         {"id": "67890", "type": "Flood", "severity": "Medium", "area": "Zone B"},

@@ -15,3 +15,19 @@ CREATE TRIGGER trigger_arc_status_change
 AFTER UPDATE OF active ON arcs
 FOR EACH ROW
 EXECUTE FUNCTION log_arc_status_change();
+
+-- -- 
+-- CREATE OR REPLACE FUNCTION notify_map_update()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     -- Notification for map update 
+--     PERFORM pg_notify('map_update', 'Updated position for user ' || NEW.user_id);
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Trigger che emette la notifica ogni volta che una posizione viene aggiornata
+-- CREATE TRIGGER trigger_map_update
+-- AFTER UPDATE ON current_position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION notify_map_update();

@@ -63,7 +63,7 @@ class DatabaseHandler:
         
     def update_user_position(self, user_id: str, x: float, y: float, z: float, danger_level: int = None):
         """
-        Updates or inserts a user position in the posizione_attuale table and logs the update in storico_per_ogni_utente.
+        Updates or inserts a user position in the current_position table and logs the update in storico_per_ogni_utente.
 
         Args:
             user_id (str): The ID of the user.
@@ -97,7 +97,7 @@ class DatabaseHandler:
 
     def get_user_positions(self) -> List[Tuple[str, float, float, float]]:
         """
-        Retrieves all user positions from the posizione_attuale table.
+        Retrieves all user positions from the current_position table.
 
         Returns:
             List[Tuple[str, float, float, float]]: List of (user_id, x, y, z) tuples.
