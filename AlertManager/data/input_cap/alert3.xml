@@ -1,0 +1,23 @@
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>CAP-IT-2023-0342</identifier>
+  <sender>arpal@regione.liguria.it</sender>
+  <sent>2023-06-17T18:45:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <category>Met</category>
+    <event>Alluvione</event>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <area>
+      <areaDesc>Genova, centro storico</areaDesc>
+      <polygon>44.41,8.93 44.40,8.94 44.39,8.92</polygon>
+    </area>
+    <parameter>
+      <valueName>PRECIPITAZIONE</valueName>
+      <value>150 mm/6h</value>
+    </parameter>
+  </info>
+</alert>
