@@ -1,0 +1,46 @@
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>Test-Alert-001</identifier>
+  <sender>example@example.org</sender>
+  <sent>2025-04-30T12:00:00+00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+
+  <!-- Primo blocco info -->
+  <info>
+    <category>Env</category>
+    <event>Flood</event>
+    <urgency>Immediate</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <language>en-US</language>
+    <responseType>Shelter</responseType>
+    <description>Heavy flooding expected in low-lying areas.</description>
+    <instruction>Move to higher ground immediately.</instruction>
+
+    <area>
+      <areaDesc>Building A</areaDesc>
+      <polygon>45.0,9.0 45.0,9.1 45.1,9.1 45.1,9.0 45.0,9.0</polygon>
+      <altitude>10</altitude>
+    </area>
+  </info>
+
+  <!-- Secondo blocco info -->
+  <info>
+    <category>Env</category>
+    <event>Fire</event>
+    <urgency>Expected</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <language>en-US</language>
+    <responseType>Evacuate</responseType>
+    <description>Major fire reported in Parking Lot area.</description>
+    <instruction>Evacuate the area and follow emergency services instructions.</instruction>
+
+    <area>
+      <areaDesc>Parking Lot</areaDesc>
+      <polygon>45.2,9.2 45.2,9.3 45.3,9.3 45.3,9.2 45.2,9.2</polygon>
+      <altitude>5</altitude>
+    </area>
+  </info>
+</alert>
