@@ -1,0 +1,20 @@
+2025-05-05 13:30:16,838 - INFO - RabbitMQ connection established
+2025-05-05 13:30:16,840 - INFO - Declared queue: alert_queue
+2025-05-05 13:30:16,840 - INFO - Declared queue: map_queue
+2025-05-05 13:30:16,842 - INFO - Declared queue: userSimulator_queue
+2025-05-05 13:30:16,843 - INFO - Declared queue: position_request_queue
+2025-05-05 13:30:16,845 - INFO - Declared queue: evacuation_paths_queue
+2025-05-05 13:30:16,848 - INFO - Started consuming from alert_queue
+2025-05-05 13:30:58,848 - INFO - RabbitMQ connection established
+2025-05-05 13:30:58,868 - INFO - RabbitMQ connection closed
+2025-05-05 13:44:21,702 - INFO - RabbitMQ connection established
+2025-05-05 13:44:21,719 - INFO - RabbitMQ connection closed
+2025-05-05 13:52:24,919 - INFO - RabbitMQ connection established
+2025-05-05 13:52:24,921 - INFO - Declared queue: alert_queue
+2025-05-05 13:52:24,922 - INFO - Declared queue: map_queue
+2025-05-05 13:52:24,923 - INFO - Declared queue: userSimulator_queue
+2025-05-05 13:52:24,924 - INFO - Declared queue: position_request_queue
+2025-05-05 13:52:24,924 - INFO - Declared queue: evacuation_paths_queue
+2025-05-05 13:52:24,928 - INFO - Started consuming from alert_queue
+2025-05-05 13:52:56,974 - INFO - RabbitMQ connection established
+2025-05-05 13:52:56,988 - INFO - RabbitMQ connection closed
