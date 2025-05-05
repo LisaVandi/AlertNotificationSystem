@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Database connection configuration
 DB_NAME = "alert_db"
-DB_USER = "alert_user"
-DB_PASSWORD = "Passworduser"
+DB_USER = "postgres"
+DB_PASSWORD = "postgres"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 

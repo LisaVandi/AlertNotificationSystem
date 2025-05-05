@@ -1,4 +1,8 @@
 import os
+import sys
+# Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from data.cap_generator import get_random_cap, xml_to_dict, save_cap_history, ensure_dir
