@@ -18,9 +18,6 @@ class UserSimulatorProducer:
             "users_positions": positions
         }
 
-        # Log delle posizioni simulate per il debug
-        logger.info(f"Generated positions: {json.dumps(positions, indent=2)}")
-
         # Pubblica il messaggio sulla coda RabbitMQ
         self.handler.publish(self.queue_name, message)
 

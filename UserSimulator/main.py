@@ -2,7 +2,6 @@ from core.simulator import UserSimulator
 from core.controller import SimulatorController
 from messaging.consumer import UserSimulatorConsumer
 from config.config_loader import load_config
-from utils.logger import logger
 
 def main():
     config = load_config()
