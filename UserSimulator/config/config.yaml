@@ -1,0 +1,92 @@
+num_users: 100
+time_slots:
+  - name: "morning_class_1"
+    start: "08:30"
+    end: "10:30"
+    distribution:
+      classroom: 0.6
+      corridor: 0.1
+      coffee shop: 0.05
+      canteen: 0.05
+      office: 0.1
+      bathroom: 0.05
+      stairs: 0.03
+      outdoor: 0.02
+
+  - name: "morning_break"
+    start: "10:30"
+    end: "11:00"
+    distribution:
+      classroom: 0.05
+      corridor: 0.15
+      coffee shop: 0.3
+      canteen: 0.3
+      office: 0.05
+      bathroom: 0.1
+      stairs: 0.03
+      outdoor: 0.02
+
+  - name: "morning_class_2"
+    start: "11:00"
+    end: "13:00"
+    distribution:
+      classroom: 0.6
+      corridor: 0.15
+      coffee shop: 0.05
+      canteen: 0.05
+      office: 0.1
+      bathroom: 0.03
+      stairs: 0.01
+      outdoor: 0.01
+
+  - name: "lunch_break"
+    start: "13:00"
+    end: "14:00"
+    distribution:
+      classroom: 0.02
+      corridor: 0.1
+      coffee shop: 0.3
+      canteen: 0.4
+      office: 0.05
+      bathroom: 0.08
+      stairs: 0.03
+      outdoor: 0.02
+
+  - name: "afternoon_class_1"
+    start: "14:00"
+    end: "15:30"
+    distribution:
+      classroom: 0.6
+      corridor: 0.15
+      coffee shop: 0.05
+      canteen: 0.05
+      office: 0.1
+      bathroom: 0.03
+      stairs: 0.01
+      outdoor: 0.01
+
+  - name: "afternoon_break"
+    start: "15:30"
+    end: "16:00"
+    distribution:
+      classroom: 0.05
+      corridor: 0.15
+      coffee shop: 0.3
+      canteen: 0.3
+      office: 0.05
+      bathroom: 0.1
+      stairs: 0.03
+      outdoor: 0.02
+
+  - name: "afternoon_class_2"
+    start: "16:00"
+    end: "18:00"
+    distribution:
+      classroom: 0.6
+      corridor: 0.15
+      coffee shop: 0.05
+      canteen: 0.05
+      office: 0.1
+      bathroom: 0.03
+      stairs: 0.01
+      outdoor: 0.01
