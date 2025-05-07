@@ -1,18 +1,18 @@
 import os
 import sys
+import logging
+import xml.etree.ElementTree as ET
+from pathlib import Path
 # Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import xml.etree.ElementTree as ET
-from pathlib import Path
 from data.cap_generator import get_random_cap, xml_to_dict, save_cap_history, ensure_dir
 from utils.filter import process_cap, load_filter_config
 from db.db_setup import create_tables
 from db.process_and_insert import process_and_insert_alert  # Use process_and_insert
 from db.db_connection import create_connection
 from api.send_msg import AlertProducer
-import logging
-import json
+
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -34,9 +34,7 @@ def main():
         # 3. Define input and output folders
         input_dir = Path("AlertManager/data/input_cap")
         output_dir = Path("AlertManager/data/stored_cap")
-
         # Ensure output folder exists
-        logger.info("📂 Checking creation of the output folder...")
         ensure_dir(output_dir)
 
         # 4. Select a random CAP file from the input folder

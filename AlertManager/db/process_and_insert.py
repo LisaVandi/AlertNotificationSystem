@@ -1,15 +1,13 @@
 import json
-from utils.filter import process_cap, load_filter_config
-from data.cap_generator import xml_to_dict
 import xml.etree.ElementTree as ET
 import logging
 import psycopg2
 from psycopg2.extras import Json
+from utils.filter import process_cap, load_filter_config
+from data.cap_generator import xml_to_dict
 
 # Configure the logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-logger.info(f"json module loaded: {json is not None}")
 
 def read_cap_from_file(file_path):
     """Reads the CAP XML file and converts it into a dictionary."""
@@ -143,8 +141,9 @@ def process_and_insert(cap_dict, conn, filter_config):
 
 def process_and_insert_alert(cap_alert, filter_config, conn=None):
     # Log to verify what is being passed as a parameter
-    logger.debug(f"Cap alert: {json.dumps(cap_alert, indent=2)}")
-    logger.debug(f"Filter config: {json.dumps(filter_config, indent=2)}")
+    logger.debug(f"Cap alert ID: {cap_alert.get('identifier')}, Sender: {cap_alert.get('sender')}")
+    logger.debug(f"Filter keys: {list(filter_config.keys())}")
+
 
     # Ensure that filter_config is a dictionary and not a file
     if not isinstance(filter_config, dict):
@@ -155,8 +154,6 @@ def process_and_insert_alert(cap_alert, filter_config, conn=None):
     if conn is None:
         logger.error("❌ Database connection not provided.")
         return
-    else:
-        logger.debug("✅ Database connection is valid.")
     
     # Ensure that the insertion function is correctly called
     try:

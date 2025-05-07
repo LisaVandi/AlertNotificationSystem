@@ -22,7 +22,7 @@ def process_cap(cap_dict, filter_config):
         return False
 
     for info in info_blocks:
-        logger.debug(f"🔍 Checking info block: {json.dumps(info, indent=2)}")
+        
 
         if "event" in f:
             cap_event = info.get("event")
