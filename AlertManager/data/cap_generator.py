@@ -5,9 +5,9 @@ from pathlib import Path
 from datetime import datetime
 import xml.etree.ElementTree as ET
 import logging
+from utils.logger import setup_logger
+logger = setup_logger()
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 def ensure_dir(path: Path):
     """Create the folder if it doesn't exist"""
@@ -144,4 +144,4 @@ def save_cap_history(cap_content: str, output_dir: Path):
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=2, ensure_ascii=False)
     except ET.ParseError as e:
-        print(f"⚠️ JSON conversion error: {e}")
+        print(f"JSON conversion error: {e}")

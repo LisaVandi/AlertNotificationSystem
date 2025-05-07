@@ -16,7 +16,7 @@ from db.db_connection import create_connection
 def create_tables():
     conn = create_connection()
     if conn is None:
-        print("❌ Failed to connect to the database.")
+        print("Failed to connect to the database.")
         return
 
     cursor = conn.cursor() 
@@ -73,7 +73,7 @@ def create_tables():
     conn.commit()
     cursor.close()
     conn.close()
-    print("✅ Database tables created successfully!")
+    print("Database tables created successfully!")
 
 if __name__ == "__main__":
     create_tables()

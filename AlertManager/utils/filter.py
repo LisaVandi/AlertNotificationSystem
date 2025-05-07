@@ -1,10 +1,8 @@
 import yaml
-import logging
-import json
+from utils.logger import setup_logger
+logger = setup_logger()
 
-# Configure the logger
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+
 
 def load_filter_config(config_file="config/filter_config.yaml"):
     with open(config_file, "r") as file:
@@ -18,7 +16,7 @@ def process_cap(cap_dict, filter_config):
         info_blocks = [info_blocks]  # Normalize to list
 
     if not info_blocks:
-        logger.debug("❌ No 'info' block found.")
+        logger.debug("No 'info' block found.")
         return False
 
     for info in info_blocks:
@@ -53,8 +51,8 @@ def process_cap(cap_dict, filter_config):
                 continue
 
         # If it reached here, this info block passed all the filters
-        logger.debug("✅ Info block passed. Valid alert.")
+        logger.debug("Info block passed. Valid alert.")
         return True
 
-    logger.debug("❌ No info block passed the filters.")
+    logger.debug("No info block passed the filters.")
     return False
