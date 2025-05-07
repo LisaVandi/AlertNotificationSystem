@@ -8,6 +8,8 @@ UserSimulator/
 │   ├── __init__.py
 │   ├── simulator.py               # Simulazione posizione utenti
 │   └── controller.py              # Logica che riceve comandi e coordina
+├── db/
+│   └── db_connection.py  # Il modulo di connessione al database
 ├── messaging/
 │   ├── __init__.py
 │   ├── consumer.py                # Consumatore da coda comandi

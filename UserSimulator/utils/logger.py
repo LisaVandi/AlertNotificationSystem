@@ -1,13 +1,16 @@
 import logging
 
-def setup_logger(name, log_file=None, level=logging.INFO):
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# Configurazione del logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-    handler = logging.FileHandler(log_file) if log_file else logging.StreamHandler()
-    handler.setFormatter(formatter)
+# Crea un handler che stampa i log sulla console
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(handler)
+# Crea un formatter per i messaggi di log
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
 
-    return logger
+# Aggiungi il handler al logger
+logger.addHandler(console_handler)

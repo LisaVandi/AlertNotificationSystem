@@ -1,7 +1,6 @@
 import yaml
-from pathlib import Path
+import os
 
-def load_yaml_config(config_name="config.yaml"):
-    config_path = Path(__file__).resolve().parent / config_name
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
+def load_config(path="UserSimulator/config/config.yaml"):
+    with open(path, "r", encoding="utf-8") as file:
+        return yaml.safe_load(file)
