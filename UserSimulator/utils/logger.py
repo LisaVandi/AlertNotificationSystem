@@ -1,16 +1,10 @@
 import logging
 
-# Configurazione del logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Crea un handler che stampa i log sulla console
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-
-# Crea un formatter per i messaggi di log
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-
-# Aggiungi il handler al logger
-logger.addHandler(console_handler)
+# Imposta il logger per l'applicazione
+logger = logging.getLogger("UserSimulator")
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)

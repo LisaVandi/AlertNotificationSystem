@@ -1,20 +1,22 @@
-from messaging.consumer import UserSimulatorConsumer
-from core.controller import SimulatorController
 from core.simulator import UserSimulator
+from core.controller import SimulatorController
+from messaging.consumer import UserSimulatorConsumer
+from config.config_loader import load_config
 from utils.logger import logger
 
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
-QUEUE_NAME = "user_simulator_queue"
+def main():
+    config = load_config()
+
+    simulator = UserSimulator(config)
+    controller = SimulatorController(simulator, config)
+
+    consumer = UserSimulatorConsumer(
+        rabbitmq_url=config['rabbitmq']['url'],
+        queue_name=config['rabbitmq']['consume_queue'],
+        callback=controller.handle_message
+    )
+
+    consumer.start_consuming()
 
 if __name__ == "__main__":
-    try:
-        simulator = UserSimulator()
-        controller = SimulatorController(simulator)
-        consumer = UserSimulatorConsumer(
-            rabbitmq_url=RABBITMQ_URL,
-            queue_name=QUEUE_NAME,
-            callback=controller.handle_message
-        )
-        consumer.start_consuming()
-    except KeyboardInterrupt:
-        logger.info("🔻 Simulator stopped manually.")
+    main()

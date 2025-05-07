@@ -1,2 +1,3 @@
-psycopg2==2.9.3  # o un'altra versione che stai usando
-yaml
+pika==1.2.0
+psycopg2==2.9.3
+pyyaml==5.4.1

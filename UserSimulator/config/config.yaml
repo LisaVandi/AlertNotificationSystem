@@ -1,4 +1,10 @@
-num_users: 100
+rabbitmq:
+  url: "amqp://guest:guest@localhost:5672/"
+  publish_queue: "position_queue"
+  consume_queue: "user_simulator_queue"
+
+num_users: 5
+
 time_slots:
   - name: "morning_class_1"
     start: "08:30"
