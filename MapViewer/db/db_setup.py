@@ -1,4 +1,4 @@
-from db.db_connection import create_connection
+from MapViewer.db.db_connection import create_connection
 
 def create_tables():
     conn = create_connection()
@@ -30,7 +30,8 @@ def create_tables():
             z2 INTEGER,
             floor_level INTEGER,
             capacity INTEGER,
-            node_type VARCHAR(50)
+            node_type VARCHAR(50), 
+            current_occupancy INT DEFAULT 0
         );
     ''')
 
@@ -83,6 +84,104 @@ def create_tables():
             FOREIGN KEY (arc_id) REFERENCES arcs(arc_id)
         );
     ''')
+    
+    # Logging function for arc state changes
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION log_arc_status_change() 
+        RETURNS TRIGGER AS $$
+        BEGIN
+            IF NEW.active <> OLD.active THEN
+                INSERT INTO arc_status_log (arc_id, previous_state, new_state, modified_by)
+                VALUES (NEW.arc_id, OLD.active, NEW.active, 'system');
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    ''')
+
+    # Trigger to call the function after updates to arcs
+    cursor.execute('''
+        DROP TRIGGER IF EXISTS trigger_arc_status_change ON arcs;
+        CREATE TRIGGER trigger_arc_status_change
+        AFTER UPDATE OF active ON arcs
+        FOR EACH ROW
+        EXECUTE FUNCTION log_arc_status_change();
+    ''')
+
+    
+    # Table to keep track of how many updates have occurred
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS update_counter (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            count INTEGER DEFAULT 0
+        );
+    ''')
+
+    # Ensure exactly one row exists in update_counter
+    cursor.execute("INSERT INTO update_counter (id, count) VALUES (1, 0) ON CONFLICT (id) DO NOTHING;")
+
+    # Drop existing trigger and function if they exist
+    cursor.execute("DROP TRIGGER IF EXISTS trg_notify_position_update ON current_position;")
+    cursor.execute("DROP FUNCTION IF EXISTS notify_position_update();")
+
+    # Create the trigger function
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION notify_position_update()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            -- Increment the counter
+            UPDATE update_counter SET count = count + 1 WHERE id = 1;
+
+            -- Only send NOTIFY every 100 updates
+            IF (SELECT count FROM update_counter WHERE id = 1) % 100 = 0 THEN
+                PERFORM pg_notify('position_update', 'Threshold reached');
+            END IF;
+
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    ''')
+
+    # Create the trigger on INSERT or UPDATE of current_position
+    cursor.execute('''
+        CREATE TRIGGER trg_notify_position_update
+        AFTER INSERT OR UPDATE ON current_position
+        FOR EACH ROW
+        EXECUTE FUNCTION notify_position_update();
+    ''')
+    
+     # Create function to update node occupancy
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION update_node_occupancy()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            -- Reset all current occupancies
+            UPDATE nodes SET current_occupancy = 0;
+
+            -- Count how many users are inside each node and update
+            UPDATE nodes
+            SET current_occupancy = sub.occupancy
+            FROM (
+                SELECT node_id, COUNT(*) AS occupancy
+                FROM current_position cp
+                JOIN nodes n ON cp.x BETWEEN n.x1 AND n.x2 AND cp.y BETWEEN n.y1 AND n.y2 AND cp.z BETWEEN n.z1 AND n.z2
+                GROUP BY node_id
+            ) AS sub
+            WHERE nodes.node_id = sub.node_id;
+
+            RETURN NULL;
+        END;
+        $$ LANGUAGE plpgsql;
+    ''')
+
+    # Trigger to update node occupancy on change to current_position
+    cursor.execute('''
+        DROP TRIGGER IF EXISTS trg_update_node_occupancy ON current_position;
+        CREATE TRIGGER trg_update_node_occupancy
+        AFTER INSERT OR UPDATE OR DELETE ON current_position
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION update_node_occupancy();
+    ''')    
 
     conn.commit()
     cursor.close()

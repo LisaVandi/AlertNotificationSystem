@@ -1,3 +1,6 @@
+const socket = new WebSocket("ws://localhost:8000/ws/updates");
+socket.onmessage = () => location.reload();
+
 async function fetchAvailableImages() {
   const res = await fetch("/api/images");
   const data = await res.json();
@@ -68,5 +71,16 @@ function drawGraph(data, elementId) {
     }
   });
 }
+
+
+let socket = new WebSocket("ws://localhost:8765");
+
+socket.onmessage = (event) => {
+  if (event.data === "refresh") {
+    console.log("🌀 Refreshing map after DB update...");
+    document.getElementById("maps").innerHTML = "";
+    drawAllMaps();
+  }
+};
 
 drawAllMaps();

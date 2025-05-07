@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import cv2
 import psycopg2
 import re
@@ -10,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_extractor import extract_nodes_and_edges_from_map, insert_graph_into_db
 from MapViewer.app.config.settings import DATABASE_CONFIG
-from MapViewer.app.state.update_counter import counter
+from MapViewer.db.db_connection import create_connection
+from MapViewer.db.db_setup import create_tables
 
 app = FastAPI()
 
@@ -20,6 +23,11 @@ JSON_OUTPUT_FOLDER = os.path.join(PUBLIC_FOLDER, "json")
 
 # Mount public directory to serve frontend and images
 app.mount("/MapViewer/public", StaticFiles(directory=PUBLIC_FOLDER), name="public")
+connected_websockets = set()
+
+conn = create_connection()
+create_tables()
+conn.close()
 
 def generate_all_graphs_from_images_if_needed():
     try:
@@ -46,7 +54,6 @@ def generate_all_graphs_from_images_if_needed():
 
             floor_level = int(match.group(1))
             image_path = os.path.join(IMG_FOLDER, filename)
-
             img = cv2.imread(image_path)
             if img is None:
                 print(f"[WARNING] Could not read image {image_path}")
@@ -70,6 +77,30 @@ def generate_all_graphs_from_images_if_needed():
         print(f"[ERROR] Error during automatic graph generation: {e}")
 
 generate_all_graphs_from_images_if_needed()
+
+def notify_clients():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    while True:
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        conn.set_isolation_level(0)
+        cur = conn.cursor()
+        cur.execute("LISTEN update_trigger;")
+        while True:
+            conn.poll()
+            while conn.notifies:
+                conn.notifies.pop()
+                coro = broadcast_update()
+                asyncio.run_coroutine_threadsafe(coro, loop)
+
+async def broadcast_update():
+    for ws in connected_websockets:
+        try:
+            await ws.send_text("update")
+        except:
+            pass
+
+threading.Thread(target=notify_clients, daemon=True).start()
 
 @app.get("/api/images")
 def list_images():
