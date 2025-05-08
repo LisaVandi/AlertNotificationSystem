@@ -77,7 +77,7 @@ let socket = new WebSocket("ws://localhost:8765");
 
 socket.onmessage = (event) => {
   if (event.data === "refresh") {
-    console.log("🌀 Refreshing map after DB update...");
+    console.log("Refreshing map after DB update...");
     document.getElementById("maps").innerHTML = "";
     drawAllMaps();
   }

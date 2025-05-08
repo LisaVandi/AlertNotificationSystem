@@ -11,10 +11,13 @@ from MapViewer.app.config.settings import DATABASE_CONFIG
 # Logging setup
 logger = setup_logging("graph_extractor", "MapViewer/logs/graph_extractor.log")
 
-# Load Z ranges config
 Z_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "z_ranges_config.json")
 with open(Z_CONFIG_PATH) as f:
     Z_RANGES = json.load(f)
+    
+SCALE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "scale_config.json")
+with open(SCALE_CONFIG_PATH) as f:
+    SCALE_CONFIG = json.load(f)
 
 # Load Room Types config
 ROOM_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "node_types_config.json")
@@ -41,6 +44,13 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
     if img is None:
         logger.error(f"Could not load image: {image_path}")
         return [], []
+    
+    PIXELS_PER_CM = 100 # Assunzione: 100 pixel = 1 cm nel modello
+    units_per_pixel = 1 / PIXELS_PER_CM  # 1 pixel = 0.01 cm nel modello
+    # Scala 1:200: 1 cm (modello) = 2 m (realtà)
+    scale_factor = SCALE_CONFIG["scale_factor"] 
+    meters_per_unit = scale_factor / 100  # 1 cm modello = 2 m reali
+    units_per_meter = 1 / meters_per_unit  # 1 m reale = 0.5 cm nel modello
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -62,21 +72,41 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
         z1 = base_z + (floor_level - 1) * height_per_floor
     z2 = z1 + height_per_floor
 
+    # Converti z in unità del modello (cm)
+    z1 = z1 * units_per_meter * 100  # 1 m = 0.5 cm nel modello, ma z è in cm
+    z2 = z2 * units_per_meter * 100
+
     nodes = []
     centroids = []
 
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
-        area = w * h
-        if area < 500:
+        area_pixels = w * h
+        if area_pixels < 500:
             continue
 
-        area = w * h
-        default_type = "classroom"
+         # Converti le coordinate in unità del modello (cm)
+        x1 = x * units_per_pixel
+        x2 = (x + w) * units_per_pixel
+        y1 = y * units_per_pixel
+        y2 = (y + h) * units_per_pixel
 
-        # Regola semplice: 1 persona ogni 2.5 m², assumendo 1 px ≈ 10 cm
-        # Calcolo esemplificativo (aggiustabile in base alla scala reale)
-        capacity = max(1, area // 250)  # ogni 250 px² corrisponde a ~1 posto
+        # Calcola l'area in metri quadrati
+        width_meters = (x2 - x1) * meters_per_unit
+        height_meters = (y2 - y1) * meters_per_unit
+        area_meters = width_meters * height_meters
+
+        node_type = "classroom"
+        if node_type == "classroom":
+            # Usa la capacità predefinita da node_types_config.json
+            for room_type in ROOM_TYPES:
+                if room_type["type"] == "classroom":
+                    capacity = room_type["capacity"]  # 5 per classroom
+                    break
+        else:
+            # Calcola dinamicamente in base all'area
+            default_capacity_per_sqm = SCALE_CONFIG["default_node_capacity_per_sqm"]  # 0.4 persone/m²
+            capacity = int(area_meters * default_capacity_per_sqm)
 
         node = {
             "x1": x,
@@ -87,7 +117,7 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
             "z2": z2,
             "floor_level": floor_level,
             "capacity": int(capacity),
-            "node_type": default_type, 
+            "node_type": node_type, 
             "current_occupancy": 0
         }
         nodes.append(node)
@@ -95,7 +125,7 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
 
     # Generate arcs based on centroid proximity
     arcs = []
-    threshold_dist = 200  # max distance for connection
+    threshold_dist = 10 # Distanza massima per il collegamento (in cm nel modello)
 
     for i in range(len(nodes)):
         for j in range(i + 1, len(nodes)):
@@ -109,7 +139,7 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
                     "z1": z1, "z2": z2,
                     "capacity": 5,
                     "flow": 0,
-                    "traversal_time": f"{int(dist)} seconds",
+                    "traversal_time": f"{int(dist * meters_per_unit)} seconds",
                     "active": True,
                     "initial_node_index": i,
                     "final_node_index": j
