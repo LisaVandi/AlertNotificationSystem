@@ -160,20 +160,25 @@ def create_tables():
         BEGIN
             -- Reset all current occupancies
             UPDATE nodes SET current_occupancy = 0;
-            -- Count how many users are inside each node and update
+
+            -- Count how many users are inside each node and update the occupancy
             UPDATE nodes
             SET current_occupancy = sub.occupancy
             FROM (
-                SELECT node_id, COUNT(*) AS occupancy
+                SELECT n.node_id AS node_id, COUNT(*) AS occupancy
                 FROM current_position cp
-                JOIN nodes n ON cp.x BETWEEN n.x1 AND n.x2 AND cp.y BETWEEN n.y1 AND n.y2 AND cp.z BETWEEN n.z1 AND n.z2
-                GROUP BY node_id
+                JOIN nodes n 
+                    ON cp.x BETWEEN n.x1 AND n.x2 
+                    AND cp.y BETWEEN n.y1 AND n.y2 
+                    AND cp.z BETWEEN n.z1 AND n.z2
+                GROUP BY n.node_id
             ) AS sub
             WHERE nodes.node_id = sub.node_id;
 
             RETURN NULL;
         END;
         $$ LANGUAGE plpgsql;
+
     ''')
 
     # Trigger to update node occupancy on change to current_position
