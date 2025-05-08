@@ -8,16 +8,6 @@ def create_tables():
 
     cursor = conn.cursor()
 
-    # Table for current positions
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS current_position (
-            user_id INTEGER PRIMARY KEY,
-            x INTEGER,
-            y INTEGER,
-            z INTEGER
-        );
-    ''')
-
     # Table for map nodes
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS nodes (
@@ -31,7 +21,21 @@ def create_tables():
             floor_level INTEGER,
             capacity INTEGER,
             node_type VARCHAR(50), 
-            current_occupancy INT DEFAULT 0
+            current_occupancy INT DEFAULT 0, 
+            evacuation_path INTEGER[]
+        );
+    ''')
+
+    # Table for current positions
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS current_position (
+            user_id INTEGER PRIMARY KEY,
+            x INTEGER,
+            y INTEGER,
+            z INTEGER, 
+            node_id INTEGER,
+            danger BOOLEAN DEFAULT FALSE,
+            FOREIGN KEY (node_id) REFERENCES nodes(node_id)
         );
     ''')
 
@@ -43,8 +47,7 @@ def create_tables():
             y INTEGER,
             z INTEGER,
             node_id INTEGER,
-            position_type VARCHAR(50),
-            danger VARCHAR(50),
+            danger BOOLEAN DEFAULT FALSE,
             PRIMARY KEY (user_id, node_id),
             FOREIGN KEY (node_id) REFERENCES nodes(node_id)
         );
@@ -57,7 +60,7 @@ def create_tables():
             arc_id SERIAL PRIMARY KEY,
             flow INTEGER,
             traversal_time INTERVAL, 
-            active BOOLEAN,
+            active BOOLEAN DEFAULT TRUE,
             x1 INTEGER,
             x2 INTEGER,
             y1 INTEGER,
@@ -150,14 +153,13 @@ def create_tables():
         EXECUTE FUNCTION notify_position_update();
     ''')
     
-     # Create function to update node occupancy
+     # Create function to update node current_occupancy
     cursor.execute('''
         CREATE OR REPLACE FUNCTION update_node_occupancy()
         RETURNS TRIGGER AS $$
         BEGIN
             -- Reset all current occupancies
             UPDATE nodes SET current_occupancy = 0;
-
             -- Count how many users are inside each node and update
             UPDATE nodes
             SET current_occupancy = sub.occupancy

@@ -1,9 +1,12 @@
-2025-05-07 10:14:43,938 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
-2025-05-07 10:24:06,278 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
-2025-05-07 10:26:49,269 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
-2025-05-07 10:27:35,597 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
-2025-05-07 10:27:36,056 - INFO - Inserted 151 nodes and 595 arcs into the database for floor level 0.
-2025-05-07 10:27:36,147 - INFO - Processing image: MapViewer/public/img\floor1.JPEG | floor_level: 1
-2025-05-07 10:27:36,541 - INFO - Inserted 131 nodes and 501 arcs into the database for floor level 1.
-2025-05-07 10:27:36,726 - INFO - Processing image: MapViewer/public/img\floor2.JPEG | floor_level: 2
-2025-05-07 10:27:43,379 - INFO - Inserted 1130 nodes and 10698 arcs into the database for floor level 2.
+2025-05-07 13:26:36,750 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
+2025-05-07 13:26:37,077 - INFO - Inserted 151 nodes and 2 arcs into the database for floor level 0.
+2025-05-07 13:26:37,533 - INFO - Processing image: MapViewer/public/img\floor1.JPEG | floor_level: 1
+2025-05-07 13:26:37,810 - INFO - Inserted 131 nodes and 7 arcs into the database for floor level 1.
+2025-05-07 13:26:38,271 - INFO - Processing image: MapViewer/public/img\floor2.JPEG | floor_level: 2
+2025-05-07 13:26:39,844 - INFO - Inserted 1130 nodes and 25 arcs into the database for floor level 2.
+2025-05-08 09:50:28,815 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
+2025-05-08 09:50:28,972 - INFO - Inserted 151 nodes and 2 arcs into the database for floor level 0.
+2025-05-08 09:50:29,051 - INFO - Processing image: MapViewer/public/img\floor1.JPEG | floor_level: 1
+2025-05-08 09:50:29,166 - INFO - Inserted 131 nodes and 7 arcs into the database for floor level 1.
+2025-05-08 09:50:29,480 - INFO - Processing image: MapViewer/public/img\floor2.JPEG | floor_level: 2
+2025-05-08 09:50:30,212 - INFO - Inserted 1130 nodes and 25 arcs into the database for floor level 2.

@@ -1,7 +1,6 @@
 """
 Robust Alert Consumer with improved message handling.
 """
-import json
 from typing import Dict, Any
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.config.settings import ALERT_QUEUE

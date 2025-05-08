@@ -2,48 +2,41 @@
   "node_types": [
     {
       "type": "classroom",
-      "min_area": 0,  
-      "max_area": 1000,
+      "display_name": "Classroom",
       "capacity": 5
     },
     {
       "type": "office",
-      "min_area": 0,
-      "max_area": 1000,
-      "capacity": 5
+      "display_name": "Office",
+      "capacity": 3
     },
     {
       "type": "coffee shop",
-      "min_area": 2501,
-      "max_area": 10000,
-      "capacity": 20
+      "display_name": "Coffee Shop"
     },
     {
       "type": "canteen",
-      "min_area": 2501,
-      "max_area": 10000,
-      "capacity": 20
+      "display_name": "Canteen"
     },
     {
       "type": "bathroom",
-      "min_area": 2501,
-      "max_area": 10000,
-      "capacity": 20
+      "display_name": "Bathroom",
+      "capacity": 10
     },
     {
       "type": "stairs",
-      "min_area": 2501,
-      "max_area": 10000,
-      "capacity": 20
+      "display_name": "Stairs",
+      "capacity": 0
     },
     {
       "type": "corridor",
-      "min_area": 2501,
-      "max_area": 10000,
-      "capacity": 20
+      "display_name": "Corridor",
+      "capacity": 0
     }, 
     {
-      "type": "outdoor" 
+      "type": "outdoor",
+      "display_name": "Outdoor",
+      "capacity": 0
     }
   ]
 }
