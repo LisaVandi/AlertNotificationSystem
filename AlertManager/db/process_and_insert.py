@@ -1,15 +1,11 @@
 import json
-from utils.filter import process_cap, load_filter_config
-from data.cap_generator import xml_to_dict
 import xml.etree.ElementTree as ET
-import logging
 import psycopg2
 from psycopg2.extras import Json
-
-# Configure the logger
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-logger.info(f"json module loaded: {json is not None}")
+from utils.filter import process_cap, load_filter_config
+from data.cap_generator import xml_to_dict
+from utils.logger import setup_logger
+logger = setup_logger()
 
 def read_cap_from_file(file_path):
     """Reads the CAP XML file and converts it into a dictionary."""
@@ -20,7 +16,7 @@ def read_cap_from_file(file_path):
         cap_dict = xml_to_dict(root)
         return cap_dict
     except Exception as e:
-        logger.error(f"❌ Error reading CAP file: {e}")
+        logger.error(f"Error reading CAP file: {e}")
         return {}
 
 def map_cap_to_db_fields(cap_alert):
@@ -43,7 +39,7 @@ def get_relevant_alert_fields(alert_dict, filter_config):
 
     for field in ['status', 'msgType', 'scope']:
         if field in alert_dict and alert_dict[field].strip().lower() not in [f.lower() for f in cap_filter.get(field, [])]:
-            logger.debug(f"⚠️ Field '{field}' is not relevant according to the filter.")
+            logger.debug(f"Field '{field}' is not relevant according to the filter.")
             return False
     return True
 
@@ -51,21 +47,21 @@ def process_and_insert(cap_dict, conn, filter_config):
     """
     Processes and inserts the CAP data into the database.
     """
-    logger.debug(f"Insertion process: cap_dict = {json.dumps(cap_dict, indent=2)}, filter_config = {json.dumps(filter_config, indent=2)}")
+    #logger.debug(f"Insertion process: cap_dict = {json.dumps(cap_dict, indent=2)}, filter_config = {json.dumps(filter_config, indent=2)}")
 
     try:
         cursor = conn.cursor()
         alert_id_str = cap_dict.get("identifier")
 
         if not alert_id_str:
-            logger.error("⚠️ Alert ID missing in the dictionary.")
+            logger.error("Alert ID missing in the dictionary.")
             return
 
         logger.info(f"🔧 Inserting data for the alert with ID: {alert_id_str}")
 
         # Check relevance of the 'alert' block
         if not get_relevant_alert_fields(cap_dict, filter_config):
-            logger.warning("❌ Alert is not relevant at the 'alert' field level. Not processed.")
+            logger.warning("Alert is not relevant at the 'alert' field level. Not processed.")
             return
 
         # Inserting into the alerts table
@@ -128,14 +124,14 @@ def process_and_insert(cap_dict, conn, filter_config):
                             area.get("altitude")
                         ))
                     except Exception as e:
-                        logger.error(f"⚠️ Error with the area geometry: {e}")
+                        logger.error(f"Error with the area geometry: {e}")
                         continue
 
         conn.commit()
-        logger.info("✅ Alert successfully inserted into the database.")
+        logger.info("Alert successfully inserted into the database.")
 
     except Exception as e:
-        logger.error(f"⚠️ Error during insertion into the database: {e}")
+        logger.error(f"Error during insertion into the database: {e}")
         conn.rollback()
     finally:
         cursor.close()
@@ -143,24 +139,23 @@ def process_and_insert(cap_dict, conn, filter_config):
 
 def process_and_insert_alert(cap_alert, filter_config, conn=None):
     # Log to verify what is being passed as a parameter
-    logger.debug(f"Cap alert: {json.dumps(cap_alert, indent=2)}")
-    logger.debug(f"Filter config: {json.dumps(filter_config, indent=2)}")
+    logger.debug(f"Cap alert ID: {cap_alert.get('identifier')}, Sender: {cap_alert.get('sender')}")
+    logger.debug(f"Filter keys: {list(filter_config.keys())}")
+
 
     # Ensure that filter_config is a dictionary and not a file
     if not isinstance(filter_config, dict):
-        logger.error(f"❌ The filter is not a dictionary, but an object of type: {type(filter_config)}")
+        logger.error(f"The filter is not a dictionary, but an object of type: {type(filter_config)}")
         return
 
     # Check that the connection is valid
     if conn is None:
-        logger.error("❌ Database connection not provided.")
+        logger.error("Database connection not provided.")
         return
-    else:
-        logger.debug("✅ Database connection is valid.")
     
     # Ensure that the insertion function is correctly called
     try:
         process_and_insert(cap_alert, conn, filter_config)  # Ensure cap_alert, conn, and filter_config are valid
-        logger.info("✅ Alert successfully inserted into the database.")
+        logger.info("Alert successfully inserted into the database.")
     except Exception as e:
-        logger.error(f"❌ Error during insertion into the database: {e}")
+        logger.error(f"Error during insertion into the database: {e}")

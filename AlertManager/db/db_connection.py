@@ -11,11 +11,8 @@ Returns a connection object if successful, or logs an error and returns None if 
 """
 
 import psycopg2
-import logging
-
-# Logging configuration
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from utils.logger import setup_logger
+logger = setup_logger()
 
 # Database connection configuration
 DB_NAME = "alert_db"
@@ -35,8 +32,8 @@ def create_connection():
             host=DB_HOST,
             port=DB_PORT
         )
-        logger.info("✅ Database connection successful!")
+        logger.info("Database connection successful!")
         return conn
     except Exception as e:
-        logger.error(f"❌ Connection error: {e}")
+        logger.error(f"Connection error: {e}")
         return None

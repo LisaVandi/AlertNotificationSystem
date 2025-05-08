@@ -1,6 +1,7 @@
 import yaml
-import os
 
-def load_config(path="UserSimulator/config/config.yaml"):
-    with open(path, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+def load_config(config_path="UserSimulator/config/config.yaml"):
+    """Carica la configurazione dal file YAML."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+    return config
