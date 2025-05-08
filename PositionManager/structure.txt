@@ -1,0 +1,21 @@
+PositionManager/
+│
+├── main.py                         # Entry point del servizio
+│
+├── config/
+│   ├── evacuation_config.yaml      # File YAML con regole di pericolo per tipo emergenza
+│   ├── logger.py                   # Configurazione del logger (console + file)
+│   └── settings.py                 # Configurazioni centralizzate (RabbitMQ, DB, code)
+│
+├── core/
+│   ├── consumer.py                 # Ascolta i messaggi sulla coda POSITION_QUEUE
+│   ├── danger_detector.py         # Verifica chi è in pericolo secondo il tipo di emergenza
+│   ├── messaging.py               # Funzioni per pubblicare messaggi su RabbitMQ
+│   └── position_handler.py        # Aggiorna il DB, gestisce storico e current_position
+│
+├── utils/
+│   ├── db.py                      # Connessione DB Postgres
+│   └── db_utils.py                # Query SQL per leggere/scrivere sul DB
+│
+└── logs/
+    └── simulation.log             # Log file generato dinamicamente
