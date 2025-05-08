@@ -7,3 +7,9 @@
 2025-05-07 10:27:36,541 - INFO - Inserted 131 nodes and 501 arcs into the database for floor level 1.
 2025-05-07 10:27:36,726 - INFO - Processing image: MapViewer/public/img\floor2.JPEG | floor_level: 2
 2025-05-07 10:27:43,379 - INFO - Inserted 1130 nodes and 10698 arcs into the database for floor level 2.
+2025-05-07 11:26:24,406 - INFO - Processing image: MapViewer/public/img\floor0.JPEG | floor_level: 0
+2025-05-07 11:26:25,299 - INFO - Inserted 151 nodes and 595 arcs into the database for floor level 0.
+2025-05-07 11:26:25,424 - INFO - Processing image: MapViewer/public/img\floor1.JPEG | floor_level: 1
+2025-05-07 11:26:25,974 - INFO - Inserted 131 nodes and 501 arcs into the database for floor level 1.
+2025-05-07 11:26:26,462 - INFO - Processing image: MapViewer/public/img\floor2.JPEG | floor_level: 2
+2025-05-07 11:26:47,852 - INFO - Inserted 1130 nodes and 10698 arcs into the database for floor level 2.
