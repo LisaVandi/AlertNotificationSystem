@@ -10,7 +10,8 @@ def handle_position(data):
     try:
         logger.debug(f"Messaggio ricevuto: {data}")
 
-        # Itera attraverso gli slots temporali se ci sono più posizioni
+        node_to_users = {}  # Aggregazione per node_id
+
         if "users_positions" in data:
             for time_slot_data in data["users_positions"]:
                 time_slot = time_slot_data.get("time_slot")
@@ -23,7 +24,7 @@ def handle_position(data):
 
                     if not all([user_id, x is not None, y is not None, z is not None, node_id]):
                         logger.warning(f"Posizione malformata, scartata: {position}")
-                        continue  # Salta questa posizione e passa alla successiva
+                        continue
 
                     user_position = {
                         "user_id": user_id,
@@ -40,19 +41,28 @@ def handle_position(data):
                     insert_historical_position(user_position)
 
                     if danger:
+                        # Aggregazione per node_id
+                        node_to_users.setdefault(node_id, []).append(user_id)
+
                         evacuation_path = get_evacuation_path(user_position["node_id"])
-                        publish_message(settings.MAP_MANAGER_QUEUE, {
-                            "user_id": user_position["user_id"],
-                            "node_id": user_position["node_id"]
-                        })
                         publish_message(settings.ALERTED_USERS_QUEUE, {
-                            "user_id": user_position["user_id"],
+                            "user_id": user_id,
                             "evacuation_path": evacuation_path
                         })
 
-                    logger.info(f"Gestita posizione utente {user_position['user_id']}, danger={danger}")
+                    logger.info(f"Gestita posizione utente {user_id}, danger={danger}")
         else:
             logger.warning(f"Messaggio malformato (manca 'users_positions'): {data}")
+
+        # Invia messaggio aggregato al MapManager
+        if node_to_users:
+            aggregated_message = {
+                "dangerous_nodes": [
+                    {"node_id": node_id, "user_ids": user_ids}
+                    for node_id, user_ids in node_to_users.items()
+                ]
+            }
+            publish_message(settings.MAP_MANAGER_QUEUE, aggregated_message)
 
     except Exception:
         logger.exception("Errore nel processing della posizione")
