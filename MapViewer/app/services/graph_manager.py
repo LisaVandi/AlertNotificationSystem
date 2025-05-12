@@ -51,3 +51,5 @@ class GraphManager:
         with self.lock:
             if floor_level in self.graphs and node_id in self.graphs[floor_level].nodes:
                 self.graphs[floor_level].nodes[node_id]['current_occupancy'] = new_value
+
+graph_manager = GraphManager()

@@ -4,7 +4,7 @@ Robust RabbitMQ Handler with improved connection management and error handling.
 import pika
 import json
 import time
-from typing import Callable, Any, Dict, Optional
+from typing import Callable, Any, Dict
 from NotificationCenter.app.config.logging import setup_logging, flush_logs, close_logging
 
 class RabbitMQHandler:
