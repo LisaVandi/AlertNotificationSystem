@@ -9,10 +9,25 @@
     .map-container { margin-bottom: 40px; }
     .title { font-weight: bold; padding: 10px; }
     .map { width: 100vw; height: 70vh; }
+    #node-type-selector { 
+      position: fixed; 
+      top: 10px; 
+      right: 10px; 
+      z-index: 1000; 
+      background: white; 
+      padding: 10px; 
+      border: 1px solid #ccc; 
+      display: none; 
+    }
   </style>
 </head>
 <body>
   <div id="maps"></div>
+  <div id="node-type-selector">
+    <label for="node-type">Node Type:</label>
+    <select id="node-type"></select>
+    <button onclick="updateNodeType()">Update</button>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="map.js"></script>
