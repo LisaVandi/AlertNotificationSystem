@@ -29,7 +29,7 @@ def create_connection():
             host=DATABASE_CONFIG["host"],
             port=DATABASE_CONFIG["port"]
         )
-        logger.info("Database connection successful!")
+        logger.info("Database connection successfull!")
         return conn
     except Exception as e:
         logger.error(f"Connection error: {e}")

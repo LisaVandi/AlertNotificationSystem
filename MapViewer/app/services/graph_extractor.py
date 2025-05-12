@@ -1,56 +1,32 @@
 import cv2
-import numpy as np
 import psycopg2
 import math
-import json
-import os
 
 from MapViewer.app.config.logging import setup_logging
-from MapViewer.app.config.settings import DATABASE_CONFIG
+from MapViewer.app.config.settings import DATABASE_CONFIG, SCALE_CONFIG, NODE_TYPES, Z_RANGES
+from MapViewer.app.services.height_mapper import HeightMapper
 
-# Logging setup
 logger = setup_logging("graph_extractor", "MapViewer/logs/graph_extractor.log")
+height_mapper = HeightMapper(Z_RANGES, SCALE_CONFIG)
 
-Z_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "z_ranges_config.json")
-with open(Z_CONFIG_PATH) as f:
-    Z_RANGES = json.load(f)
-    
-SCALE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "scale_config.json")
-with open(SCALE_CONFIG_PATH) as f:
-    SCALE_CONFIG = json.load(f)
-
-# Load Room Types config
-ROOM_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "node_types_config.json")
-with open(ROOM_CONFIG_PATH) as f:
-    ROOM_TYPES = json.load(f)["node_types"]
+PIXELS_PER_CM = SCALE_CONFIG["pixels_per_cm"]
+THRESHOLD_DIST_CM = SCALE_CONFIG["edge_threshold_cm"]
+MIN_AREA_PX = SCALE_CONFIG["min_area_px"]
+DEFAULT_CAP_PER_SQM = SCALE_CONFIG["default_node_capacity_per_sqm"]
+SCALE_FACTOR = SCALE_CONFIG["scale_factor"]
 
 def extract_nodes_and_edges_from_map(image_path, floor_level):
-    """
-    Extracts nodes (rooms) and edges (connections) from a map image.
-
-    Args:
-        image_path (str): The file path to the map image.
-        floor_level (int): The floor level associated with the map.
-
-    Returns:
-        tuple: A tuple containing:
-            - nodes (list of dict): Rooms with coordinates and metadata.
-            - arcs (list of dict): Connections between rooms.
-    """
     logger.info(f"Processing image: {image_path} | floor_level: {floor_level}")
 
-    # Read image and convert to grayscale
     img = cv2.imread(image_path)
     if img is None:
         logger.error(f"Could not load image: {image_path}")
         return [], []
     
-    PIXELS_PER_CM = 100 # Assunzione: 100 pixel = 1 cm nel modello
-    units_per_pixel = 1 / PIXELS_PER_CM  # 1 pixel = 0.01 cm nel modello
-    # Scala 1:200: 1 cm (modello) = 2 m (realtà)
-    scale_factor = SCALE_CONFIG["scale_factor"] 
-    meters_per_unit = scale_factor / 100  # 1 cm modello = 2 m reali
-    units_per_meter = 1 / meters_per_unit  # 1 m reale = 0.5 cm nel modello
+    units_per_pixel = 1 / PIXELS_PER_CM  # cm per pixel 
+    cm_to_m = SCALE_FACTOR / 100 # model cm to real m    
+    
+    origin_x, origin_y = 0, 0  
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -61,20 +37,11 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
     if not contours:
             logger.warning(f"No contours found in image: {image_path}")
             return [], []
-
-    # Calculate Z-range dynamically
-    base_z = Z_RANGES.get("base_z", 0)
-    height_per_floor = Z_RANGES.get("height_per_floor", 3)
-    start_from_zero = Z_RANGES.get("z_start_at_floor_zero", False)
-    if start_from_zero:
-        z1 = base_z + floor_level * height_per_floor
-    else:
-        z1 = base_z + (floor_level - 1) * height_per_floor
-    z2 = z1 + height_per_floor
-
-    # Converti z in unità del modello (cm)
-    z1 = z1 * units_per_meter * 100  # 1 m = 0.5 cm nel modello, ma z è in cm
-    z2 = z2 * units_per_meter * 100
+    
+    # Calculate Z-range using HeightMapper
+    z_min_m, z_max_m = height_mapper.get_floor_z_range(floor_level)
+    z1 = height_mapper.meters_to_model_units(z_min_m) * 100
+    z2 = z1 + (height_mapper.meters_to_model_units(z_max_m - z_min_m) * 100)
 
     nodes = []
     centroids = []
@@ -82,31 +49,23 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         area_pixels = w * h
-        if area_pixels < 500:
+        if area_pixels < MIN_AREA_PX:
             continue
 
-         # Converti le coordinate in unità del modello (cm)
-        x1 = x * units_per_pixel
-        x2 = (x + w) * units_per_pixel
-        y1 = y * units_per_pixel
-        y2 = (y + h) * units_per_pixel
+        # Pixel to model units (cm)
+        x1_cm = (x - origin_x) * units_per_pixel
+        x2_cm = (x + w - origin_x) * units_per_pixel
+        y1_cm = (y - origin_y) * units_per_pixel
+        y2_cm = (y + h - origin_y) * units_per_pixel
 
-        # Calcola l'area in metri quadrati
-        width_meters = (x2 - x1) * meters_per_unit
-        height_meters = (y2 - y1) * meters_per_unit
+        width_meters = (x2_cm - x1_cm) * cm_to_m
+        height_meters = (y2_cm - y1_cm) * cm_to_m
         area_meters = width_meters * height_meters
 
         node_type = "classroom"
-        if node_type == "classroom":
-            # Usa la capacità predefinita da node_types_config.json
-            for room_type in ROOM_TYPES:
-                if room_type["type"] == "classroom":
-                    capacity = room_type["capacity"]  # 5 per classroom
-                    break
-        else:
-            # Calcola dinamicamente in base all'area
-            default_capacity_per_sqm = SCALE_CONFIG["default_node_capacity_per_sqm"]  # 0.4 persone/m²
-            capacity = int(area_meters * default_capacity_per_sqm)
+        capacity = NODE_TYPES.get(node_type, {}).get("capacity")
+        if capacity is None:
+            capacity = int(area_meters * DEFAULT_CAP_PER_SQM)
 
         node = {
             "x1": x,
@@ -121,9 +80,8 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
             "current_occupancy": 0
         }
         nodes.append(node)
-        centroids.append(((x + x + w) // 2, (y + y + h) // 2))
+        centroids.append(((x1_cm + x2_cm) / 2, (y1_cm + y2_cm) / 2)) 
 
-    # Generate arcs based on centroid proximity
     arcs = []
     threshold_dist = 10 # Distanza massima per il collegamento (in cm nel modello)
 
@@ -137,9 +95,9 @@ def extract_nodes_and_edges_from_map(image_path, floor_level):
                     "x1": c1[0], "y1": c1[1],
                     "x2": c2[0], "y2": c2[1],
                     "z1": z1, "z2": z2,
-                    "capacity": 5,
+                    "capacity": 30, # attenzione!!
                     "flow": 0,
-                    "traversal_time": f"{int(dist * meters_per_unit)} seconds",
+                    "traversal_time": f"{int(dist * cm_to_m)} seconds",
                     "active": True,
                     "initial_node_index": i,
                     "final_node_index": j
@@ -182,12 +140,12 @@ def insert_graph_into_db(nodes, arcs, floor_level):
                 arc.get("x1"), arc.get("x2"),
                 arc.get("y1"), arc.get("y2"),
                 arc.get("z1"), arc.get("z2"),
-                arc.get("capacity", 5),
+                arc.get("capacity", 5), # attenzione!!
                 node_ids[arc["initial_node_index"]],
                 node_ids[arc["final_node_index"]]
             ))
             arc_id = cur.fetchone()[0]
-            
+                                 
             cur.execute("""
             INSERT INTO arc_status_log (arc_id, previous_state, new_state, modified_by)
             VALUES (%s, %s, %s, %s)
@@ -197,7 +155,6 @@ def insert_graph_into_db(nodes, arcs, floor_level):
                 arc.get("active", True),
                 "initialization"
             ))
-
         conn.commit()
     except Exception as e:
         conn.rollback()
