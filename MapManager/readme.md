@@ -1,0 +1,4 @@
+Riceve dal gestore delle posizioni la lista degli identificativi univoci (id) delle persone interessate all’allerta in formato aggregato in base ai nodi. 
+Inizia la propria attività di calcolo di percorsi individuando i percorsi di default per ogni nodo e li salva sul db sul campo"evacuation_path" di ogni nodo. 
+Infatti, accede alla tabella delle posizioni attuali del database delle posizioni e, sulla base delle posizioni degli utenti in allerta, calcola il percorso di evacuazione e lo aggiorna sul database. 
+Inoltre, aggiorna lo stato di un arco (attivo/non attivo) sulla base della capacità e di eventuali interruzioni segnalate dagli utenti. 
