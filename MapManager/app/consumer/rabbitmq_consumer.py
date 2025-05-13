@@ -5,10 +5,10 @@ from typing import Dict, Any
 
 import psycopg2
 
-from MapManager.app.config.settings import DATABASE_CONFIG
+from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapManager.app.core.manager import handle_evacuations
+from MapManager.app.config.logging import setup_logging
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
-from NotificationCenter.app.config.logging import setup_logging
 from NotificationCenter.app.config.settings import MAP_MANAGER_QUEUE
 
 logger = setup_logging("evacuation_consumer", "MapManager/logs/evacuationConsumer.log")

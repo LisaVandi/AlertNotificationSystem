@@ -38,9 +38,9 @@ class AlertConsumer:
                     "description": "Stop alert request from NotificationCenter"
                 }
                 send_alert_to_user_simulator(self.rabbitmq, stop_message)
-                            
+        
             logger.info("Alert processed successfully")
-            
+
         except Exception as e:
             logger.error(f"Error processing alert: {str(e)}")
             raise

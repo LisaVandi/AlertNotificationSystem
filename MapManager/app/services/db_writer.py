@@ -2,7 +2,7 @@ import json
 import logging
 import psycopg2
 
-from MapManager.app.config.settings import DATABASE_CONFIG
+from MapViewer.app.config.settings import DATABASE_CONFIG
 
 logger = logging.getLogger(__name__)
 
