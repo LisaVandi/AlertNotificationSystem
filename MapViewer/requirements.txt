@@ -1,6 +1,0 @@
-psycopg2
-fastapi
-opencv-python
-uvicorn
-asyncpg 
-websockets 

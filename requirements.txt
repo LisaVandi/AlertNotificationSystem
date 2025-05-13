@@ -1,0 +1,10 @@
+psycopg2
+fastapi
+opencv-python
+uvicorn
+asyncpg
+websockets
+pytest   
+pika==1.2.0
+pyyaml>=6.0
+# yaml
