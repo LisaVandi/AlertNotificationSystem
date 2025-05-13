@@ -1,5 +1,10 @@
+import os 
+import sys
+# Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from UserSimulator.simulation.event_listener import listen_for_events
-from UserSimulator.utils.logger import logger  # Importa il logger
+from utils.logger import logger  # Importa il logger
 
 if __name__ == "__main__":
     try:

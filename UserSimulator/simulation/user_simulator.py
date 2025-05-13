@@ -3,7 +3,7 @@ import pika
 import json
 from MapViewer.db.db_connection import create_connection
 from UserSimulator.rabbitmq.rabbitmq_manager import get_rabbitmq_channel
-from UserSimulator.utils.logger import logger
+from utils.logger import logger
 from datetime import datetime
 import yaml
 

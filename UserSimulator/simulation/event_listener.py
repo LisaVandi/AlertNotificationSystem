@@ -2,7 +2,7 @@ import pika
 import json
 import sys
 import os
-from UserSimulator.utils.logger import logger  # Importa il logger
+from utils.logger import logger  # Importa il logger
 
 # Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
