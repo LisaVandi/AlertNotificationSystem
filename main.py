@@ -89,7 +89,11 @@ def main():
     # Avvio microservizi
     for name, cmd in startup_sequence:
         run_process(name, cmd)
-        time.sleep(1.5)  # Ritardo opzionale
+        # Aggiunta del ritardo personalizzato dopo specifici processi
+        if name == "MapViewer websocket":
+            time.sleep(3)  # Tempo extra per far partire il WebSocket
+        else:
+            time.sleep(1.5)  # Ritardo standard
 
     print("\n[INFO] Tutti i microservizi sono stati avviati. Monitoraggio in corso...\n")
 

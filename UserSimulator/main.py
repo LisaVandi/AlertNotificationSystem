@@ -1,21 +1,10 @@
-from core.simulator import UserSimulator
-from core.controller import SimulatorController
-from messaging.consumer import UserSimulatorConsumer
-from config.config_loader import load_config
-
-def main():
-    config = load_config()
-
-    simulator = UserSimulator(config)
-    controller = SimulatorController(simulator, config)
-
-    consumer = UserSimulatorConsumer(
-        rabbitmq_url=config['rabbitmq']['url'],
-        queue_name=config['rabbitmq']['consume_queue'],
-        callback=controller.handle_message
-    )
-
-    consumer.start_consuming()
+from UserSimulator.simulation.event_listener import listen_for_events
+from UserSimulator.utils.logger import logger  # Importa il logger
 
 if __name__ == "__main__":
-    main()
+    try:
+        logger.info("Avvio del listener per gli eventi.")
+        listen_for_events()  # Avvia l'ascolto degli eventi
+        logger.info("Ascolto eventi completato.")  # Questo verrà eseguito quando il listener si ferma
+    except Exception as e:
+        logger.error(f"Errore durante l'esecuzione del listener: {e}")
