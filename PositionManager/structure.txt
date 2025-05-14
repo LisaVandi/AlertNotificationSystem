@@ -1,17 +1,12 @@
 PositionManager/
-├── main.py                            # Entry point: listener RabbitMQ
+├── main.py                            # Entry point: listener for RabbitMQ
 ├── config/
-│   └── config.yaml                    # File di configurazione eventi
+│   └── config.yaml                    # Configuration file for event handling
 ├── db/
-│   ├── db_connection.py              # Connessione DB (importata da MapViewer)
-│   ├── current_position_handler.py   # Upsert posizione corrente
-│   └── historical_position_handler.py# Inserimento posizione storica
-├── messaging/
-│   ├── rabbitmq_listener.py          # Ascolta coda RabbitMQ
-│   ├── dispatcher.py                 # Logica per invio ad altri microservizi
-│   └── rabbitmq_manager.py           # Connessione e publish a RabbitMQ
+│   ├── db_connection.py               # Database connection utility
+│   ├── db_manager.py                  # Database operations
+├── rabbitmq/
+│   ├── consumer.py                    # RabbitMQ consumer to process messages
 ├── utils/
-│   ├── logger.py                     # Logger configurato
-│   └── config_loader.py              # Caricamento file config.yaml
-└── processor/
-    └── position_processor.py         # Logica centrale: ricezione, parsing, db write
+│   ├── logger.py                      # Logger setup
+│   └── config_loader.py               # Config file loader
