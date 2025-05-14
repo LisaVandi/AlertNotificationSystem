@@ -1,54 +1,100 @@
+# cap_filter.py
+# This file defines filters for CAP (Common Alerting Protocol) messages and provides rules to decide 
+# which alerts are considered relevant based on certain fields.
+#
+# The YAML configuration here defines various filters for different CAP fields like:
+#   - Event type
+#   - Urgency
+#   - Severity
+#   - Certainty
+#   - Area
+#   - Response type
+#   - Status
+#   - Message type
+#   - Scope
+#   - Optional fields
+#
+# These filters will be used to determine whether an alert is considered relevant and should trigger an action.
+
+# Defining the filter configuration in YAML format.
+
 cap_filter:
+  # The 'event' field contains a list of events that are considered relevant.
+  # These events typically correspond to emergencies, natural disasters, or significant incidents.
   event: 
-    - "Fire"
-    - "Earthquake"
-    - "Flood"
-    - "Hazardous Material"
-    - "Severe Weather"
-    - "Power Outage"
+    - "Fire"                    # Fire-related incidents.
+    - "Earthquake"              # Earthquakes or seismic activities.
+    - "Flood"                   # Flooding incidents.
+    - "Hazardous Material"      # Spillage or exposure to hazardous materials.
+    - "Severe Weather"          # Extreme weather conditions (storm, tornado, etc.).
+    - "Power Outage"            # Widespread electrical outage.
+
+  # The 'urgency' field defines the urgency of the event, affecting how quickly action must be taken.
+  # 'Immediate' urgency demands an immediate response, while 'Future' signals that action is required later.
   urgency: 
-    - "Immediate"
-    - "Expected"
-    - "Future"
+    - "Immediate"               # Requires immediate attention and action.
+    - "Expected"                # Expected soon; should prepare for it.
+    - "Future"                  # Event is anticipated at a later time.
+
+  # The 'severity' field defines the severity of the event, indicating the level of damage or threat.
+  # High severity events typically require urgent responses or evacuation.
   severity: 
-    - "Extreme"
-    - "Severe"
-    - "Moderate"
-    - "Minor"
+    - "Extreme"                 # Severe and life-threatening events.
+    - "Severe"                  # High impact, but less than extreme.
+    - "Moderate"                # Moderate impact, less immediate threat.
+    - "Minor"                   # Minimal impact; manageable situation.
+
+  # The 'certainty' field defines the certainty of the event, whether it's observed or likely.
   certainty: 
-    - "Observed"
-    - "Likely"
+    - "Observed"                # Event has been confirmed through direct observation.
+    - "Likely"                  # Event is predicted but not yet confirmed.
+
+  # The 'area' field lists the specific areas where the event is happening or where it might have an impact.
+  # Certain buildings or regions may be prioritized based on the configuration.
   area:
-    - "Building A"
-    - "Building B"
-    - "Building C"
-    - "Parking Lot"
-    - "Surrounding Area"
+    - "Building A"              # Specifies a particular building as part of the area.
+    - "Building B"              # A different building affected.
+    - "Building C"              # Another building that may be impacted.
+    - "Parking Lot"             # Parking areas could also be impacted.
+    - "Surrounding Area"        # General area around the buildings (e.g., surrounding streets).
+
+  # The 'responseType' field defines the recommended response actions for the event.
+  # Some responses involve evacuations, shelters, preparations, or monitoring.
   responseType:
-    - "Shelter"
-    - "Evacuate"
-    - "Prepare"
-    - "Monitor"
-    - "AllClear"
+    - "Shelter"                 # Take shelter from the event.
+    - "Evacuate"                # Evacuate the area for safety.
+    - "Prepare"                 # Prepare for the impending event.
+    - "Monitor"                 # Monitor the situation, no immediate action yet.
+    - "AllClear"                # Clear the alert when the event has passed.
+
+  # The 'status' field defines the current status of the event, whether it's an actual event, an exercise, or a test.
   status:
-    - "Actual"
-    - "Exercise"
-    - "System"
-    - "Test"
+    - "Actual"                  # Indicates the event is real and requires attention.
+    - "Exercise"                # Indicates the event is part of a test or drill.
+    - "System"                  # System-generated alert, not based on a real event.
+    - "Test"                    # The event is a test message and not real.
+
+  # The 'msgType' field defines the type of message being sent, such as alert, update, or cancellation.
   msgType:
-    - "Alert"
-    - "Update"
-    - "Cancel"
+    - "Alert"                   # A new alert about a real event.
+    - "Update"                  # A follow-up message providing new information.
+    - "Cancel"                  # A cancellation of a previous alert.
+
+  # The 'scope' field defines who the alert is intended for (public, restricted, or private).
   scope:
-    - "Public"
-    - "Restricted"
-    - "Private"
+    - "Public"                  # Alert intended for the general public.
+    - "Restricted"              # Alert meant for a specific group or restricted audience.
+    - "Private"                 # Alert intended for private or internal use only.
+
+  # The 'optionalFields' field lists the optional fields that can be included in a CAP message.
+  # These are additional pieces of information that may or may not be present, but their presence can
+  # enhance the relevance or clarity of the alert message.
   optionalFields:
-    - "headline"
-    - "description"
-    - "instruction"
-    - "contact"
-    - "sent"
-    - "effective"
-    - "onset"
-    - "expires"
+    - "headline"                # Brief title or summary of the alert.
+    - "description"             # Detailed description of the event.
+    - "instruction"             # Instructions on what to do during the event.
+    - "contact"                 # Contact information for further details.
+    - "sent"                    # Time the alert was sent.
+    - "effective"               # Time the event becomes effective.
+    - "onset"                   # Time the event begins.
+    - "expires"                 # Time the alert expires or becomes irrelevant.
