@@ -35,12 +35,21 @@ class DBManager:
     def insert_historical_position(self, user_id, x, y, z, node_id, danger):
         try:
             with self.conn.cursor() as cursor:
+                # Verifica se esiste già un record con la stessa chiave primaria (user_id, node_id)
                 cursor.execute("""
-                    INSERT INTO user_historical_position (user_id, x, y, z, node_id, danger)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (user_id, node_id) DO NOTHING;
-                """, (user_id, x, y, z, node_id, danger))
-                self.conn.commit()
+                    SELECT 1 FROM user_historical_position WHERE user_id = %s AND node_id = %s;
+                """, (user_id, node_id))
+                result = cursor.fetchone()
+
+                if result:  # Se il record esiste già, non fare nulla
+                    logger.info(f"L'utente {user_id} nel nodo {node_id} esiste già nella tabella storica.")
+                else:  # Se non esiste, esegui l'inserimento
+                    cursor.execute("""
+                        INSERT INTO user_historical_position (user_id, x, y, z, node_id, danger)
+                        VALUES (%s, %s, %s, %s, %s, %s);
+                    """, (user_id, x, y, z, node_id, danger))
+                    self.conn.commit()
+                    logger.info(f"Inserted historical position for user {user_id} at node {node_id}.")
         except Exception as e:
             logger.error(f"Failed to insert into user_historical_position: {e}")
 

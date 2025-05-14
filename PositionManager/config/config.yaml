@@ -1,5 +1,7 @@
 dispatch_threshold: 10
 
+dispatch_interval: 10
+
 emergencies:
   Flood:
     type: floor

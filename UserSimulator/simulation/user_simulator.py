@@ -142,6 +142,11 @@ def handle_alert(msg):
     num_users = config['num_users']
     channel, _ = get_rabbitmq_channel()
 
+    # Estrai ogni evento presente nella lista "info"
+    for alert_info in msg.get("info", []):
+        event = alert_info.get("event", "Unknown")
+        logger.info(f"Gestione evento di tipo '{event}'")
+
     for node_type, probability in distribution.items():
         nodes = get_nodes_by_type(node_type)
 
@@ -153,7 +158,7 @@ def handle_alert(msg):
             node = random.choice(nodes)
             x, y, z = generate_random_position_within_node(node)
             user_id = generate_unique_user_id()
-            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event='Alert')
+            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event=event)
 
     logger.info("Elaborazione messaggio di allerta completata.")
 

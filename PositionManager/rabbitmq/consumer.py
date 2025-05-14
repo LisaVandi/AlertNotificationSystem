@@ -1,5 +1,7 @@
 import json
 import pika
+import time
+import threading
 from PositionManager.db.db_manager import DBManager
 from PositionManager.utils.logger import logger
 import yaml
@@ -9,24 +11,38 @@ class PositionManagerConsumer:
         self.db_manager = DBManager()
         self.config = self.load_config(config_file)
         self.dispatch_threshold = self.config.get('dispatch_threshold', 10)
+        self.dispatch_interval = self.config.get('dispatch_interval', 10)  # intervallo in secondi
         self.processed_count = 0
+        self.last_dispatch_time = time.time()
 
-        # Connessione a RabbitMQ
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self.channel = self.connection.channel()
 
         self.channel.queue_declare(queue='position_queue', durable=True)
         self.channel.basic_consume(queue='position_queue', on_message_callback=self.process_message, auto_ack=True)
 
+        # Avvia il thread di flush periodico
+        threading.Thread(target=self.periodic_flush, daemon=True).start()
+
     def load_config(self, config_file):
         with open(config_file, 'r') as file:
             config = yaml.safe_load(file)
         return config
 
+    def periodic_flush(self):
+        while True:
+            time.sleep(1)
+            now = time.time()
+            if self.processed_count > 0 and (now - self.last_dispatch_time) >= self.dispatch_interval:
+                logger.info("Flush temporale attivato.")
+                self.send_aggregated_data()
+                self.processed_count = 0
+                self.last_dispatch_time = now
+
+
     def process_message(self, ch, method, properties, body):
         try:
             logger.info(f"Received raw message:\n{json.dumps(json.loads(body), indent=2)}")
-            
             message = json.loads(body)
             event = message.get("event")
             user_id = message.get("user_id")
@@ -40,6 +56,7 @@ class PositionManagerConsumer:
             
             # Effettua l'upsert nel database
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
+            self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
             
             # Conta i messaggi processati
             self.processed_count += 1
@@ -112,7 +129,7 @@ class PositionManagerConsumer:
         """Aggrega le informazioni sulla base dei nodi e invia il risultato."""
         aggregated_data = {}
         try:
-            with self.db_manager.map_manager_conn.cursor() as cursor:
+            with self.db_manager.conn.cursor() as cursor:
                 cursor.execute("""
                     SELECT node_id, user_id
                     FROM current_position
@@ -135,7 +152,7 @@ class PositionManagerConsumer:
         """Recupera i dati di evacuazione per gli utenti in pericolo."""
         evacuation_data = []
         try:
-            with self.db_manager.map_manager_conn.cursor() as cursor:
+            with self.db_manager.conn.cursor() as cursor:
                 cursor.execute("""
                     SELECT user_id, node_id
                     FROM current_position
