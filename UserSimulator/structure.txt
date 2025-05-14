@@ -1,20 +1,25 @@
-MapViewer/
+UserSimulator/
 │
-├── db/                      # Modulo di gestione del database
+├── db/                      # Database management module
 │   ├── __init__.py
-│   ├── db_connection.py      # Connessione al database
-├── config/                      # Modulo di gestione del database
-│   ├── __init__.py
-│   ├── config.yaml      # File di configurazione (YAML)
+│   ├── db_connection.py     # Handles database connection logic
 │
-├── rabbitmq/                # Modulo di gestione RabbitMQ
+├── config/                  # Configuration module
 │   ├── __init__.py
-│   ├── rabbitmq_manager.py   # Gestione della connessione e messaggi RabbitMQ
+│   ├── config.yaml          # YAML file containing service configuration
 │
-├── simulation/              # Modulo di simulazione degli utenti
+├── rabbitmq/                # RabbitMQ communication module
 │   ├── __init__.py
-│   ├── user_simulator.py     # Simulatore degli utenti e gestione delle posizioni
-│   ├── event_listener.py  # 
+│   ├── rabbitmq_manager.py  # Manages RabbitMQ connections and message handling
 │
-├── main.py                  # Modulo principale che orchestri il sistema
-└── requirements.txt         # File delle dipendenze
+├── simulation/              # User simulation logic
+│   ├── __init__.py
+│   ├── user_simulator.py    # Core logic for simulating users and their positions
+│   ├── event_listener.py    # Listens for incoming events and triggers simulations
+│
+├── utils/                   # Utility functions and helpers
+│   ├── __init__.py
+│   ├── logger.py            # Logging setup and custom logger
+│
+├── main.py                  # Entry point that orchestrates service startup and components
+└── requirements.txt         # Python dependencies for the project

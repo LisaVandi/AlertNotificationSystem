@@ -1,54 +1,54 @@
 import random
 import pika
 import json
-from MapViewer.db.db_connection import create_connection
-from UserSimulator.rabbitmq.rabbitmq_manager import get_rabbitmq_channel
-from utils.logger import logger
+from MapViewer.db.db_connection import create_connection  # Import the database connection utility
+from UserSimulator.rabbitmq.rabbitmq_manager import get_rabbitmq_channel  # Import RabbitMQ connection manager
+from utils.logger import logger  # Import the logger for logging events and errors
 from datetime import datetime
 import yaml
 
-# Variabile globale per tenere traccia dell'ultimo user_id
-user_id_counter = 0  # Partiamo da un ID base
-simulation_active = True  # Variabile globale per gestire lo stato della simulazione
+# Global variables to track the last user_id and the simulation state
+user_id_counter = 0  # Start with a base ID
+simulation_active = True  # Global flag to control the simulation state
 
 def load_config(config_path="UserSimulator/config/config.yaml"):
-    """Carica la configurazione dal file YAML"""
+    """Loads the configuration from the YAML file"""
     try:
         with open(config_path, "r") as file:
-            config = yaml.safe_load(file)
-        logger.info(f"Configurazione caricata correttamente da {config_path}")
+            config = yaml.safe_load(file)  # Read YAML configuration
+        logger.info(f"Configuration successfully loaded from {config_path}")
         return config
     except Exception as e:
-        logger.error(f"Errore nel caricamento della configurazione: {e}")
+        logger.error(f"Error loading configuration: {e}")
         raise
 
 def generate_unique_user_id():
-    """Genera un ID utente unico"""
+    """Generates a unique user ID"""
     global user_id_counter
-    user_id_counter += 1
+    user_id_counter += 1  # Increment the counter for each new user
     return user_id_counter
 
 def get_nodes_by_type(node_type=None):
-    """Ottieni i nodi di un certo tipo"""
-    conn = create_connection()
+    """Retrieves nodes of a specific type from the database"""
+    conn = create_connection()  # Establish database connection
     cursor = conn.cursor()
     query = "SELECT * FROM nodes"
     if node_type:
-        query += f" WHERE node_type = '{node_type}'"
+        query += f" WHERE node_type = '{node_type}'"  # Filter nodes by type if specified
     cursor.execute(query)
-    nodes = cursor.fetchall()
+    nodes = cursor.fetchall()  # Fetch all nodes
     cursor.close()
     conn.close()
 
     nodes_list = []
     for node in nodes:
         node_dict = {
-            'node_id': node[0],
-            'node_type': node[1],
-            'x1': node[2],
+            'node_id': node[0],  # Node ID
+            'node_type': node[1],  # Node type (e.g., classroom, corridor, etc.)
+            'x1': node[2],  # Coordinates of the first corner
             'y1': node[3],
             'z1': node[4],
-            'x2': node[5],
+            'x2': node[5],  # Coordinates of the second corner
             'y2': node[6],
             'z2': node[7],
         }
@@ -56,158 +56,157 @@ def get_nodes_by_type(node_type=None):
     return nodes_list
 
 def get_current_position(user_id):
-    """Recupera la posizione corrente dell'utente"""
+    """Fetches the current position of the user from the database"""
     try:
         conn = create_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT x, y, z, node_id FROM current_position WHERE user_id = %s", (user_id,))
-        position = cursor.fetchone()
+        position = cursor.fetchone()  # Fetch the user's position
         cursor.close()
         conn.close()
         if position:
-            logger.info(f"Posizione corrente recuperata per l'utente {user_id}: {position}")
+            logger.info(f"Current position retrieved for user {user_id}: {position}")
         else:
-            logger.warning(f"Posizione per l'utente {user_id} non trovata.")
+            logger.warning(f"Position for user {user_id} not found.")
         return position
     except Exception as e:
-        logger.error(f"Errore nel recupero della posizione per l'utente {user_id}: {e}")
+        logger.error(f"Error retrieving position for user {user_id}: {e}")
         return None
 
 def get_current_time_slot(time_slots):
-    """Determina lo slot orario in base all'ora attuale"""
+    """Determines the current time slot based on the current time"""
     now = datetime.now()
-    current_time = now.strftime("%H:%M")  # Ottieni l'ora corrente in formato HH:MM
+    current_time = now.strftime("%H:%M")  # Get the current time in HH:MM format
 
-    # Cerca lo slot corrispondente all'ora attuale
+    # Search for the corresponding time slot based on the current time
     for slot in time_slots:
         if slot["start"] <= current_time < slot["end"]:
             return slot
     return None
 
 def generate_random_position_within_node(node):
-    """Genera una posizione casuale all'interno di un nodo"""
+    """Generates a random position within a node's boundaries"""
     try:
-        # Verifica e correggi l'ordine dei valori per evitare intervalli vuoti o invertiti
+        # Ensure the coordinates are in the correct order to avoid empty or inverted ranges
         x1, x2 = sorted([node['x1'], node['x2']])
         y1, y2 = sorted([node['y1'], node['y2']])
         z1, z2 = sorted([node['z1'], node['z2']])
         
-        x = random.randint(x1, x2)
+        x = random.randint(x1, x2)  # Generate random position within the node
         y = random.randint(y1, y2)
         z = random.randint(z1, z2)
 
-        logger.info(f"Posizione casuale generata per il nodo {node['node_id']}: ({x}, {y}, {z})")
+        logger.info(f"Random position generated for node {node['node_id']}: ({x}, {y}, {z})")
         return x, y, z
     except Exception as e:
-        logger.error(f"Errore nella generazione della posizione casuale per il nodo {node['node_id']}: {e}")
+        logger.error(f"Error generating random position for node {node['node_id']}: {e}")
         raise
 
 
 def send_position_to_position_manager(channel, user_id, x, y, z, node_id, event=None):
-    """Invia la posizione al position_manager"""
+    """Sends the generated position to the position manager via RabbitMQ"""
     try:
         message = {
-            "user_id": user_id,
-            "x": x,
-            "y": y,
-            "z": z,
-            "node_id": node_id,
-            "event": event
+            "user_id": user_id,  # The user's unique ID
+            "x": x,  # The x-coordinate of the position
+            "y": y,  # The y-coordinate of the position
+            "z": z,  # The z-coordinate of the position
+            "node_id": node_id,  # The ID of the node the user is in
+            "event": event  # Event information (if available)
         }
-        logger.info(f"Inviando posizione: {message}")
+        logger.info(f"Sending position: {message}")
         channel.basic_publish(
             exchange='',
-            routing_key='position_queue',
+            routing_key='position_queue',  # Routing the message to the position queue
             body=json.dumps(message)
         )
-        logger.info(f"Inviata posizione per l'utente {user_id} al position_manager: ({x}, {y}, {z})")
+        logger.info(f"Position for user {user_id} sent to position_manager: ({x}, {y}, {z})")
     except Exception as e:
-        logger.error(f"Errore nell'invio della posizione per l'utente {user_id}: {e}")
+        logger.error(f"Error sending position for user {user_id}: {e}")
 
 
 def handle_alert(msg):
-    """Gestisce il messaggio Alert"""
+    """Handles the 'Alert' message type"""
     if not simulation_active:
-        return  # Se la simulazione è stata fermata, non fare nulla
+        return  # Do nothing if simulation is stopped
 
-    config = load_config()
-    time_slot = get_current_time_slot(config['time_slots'])
+    config = load_config()  # Load the configuration
+    time_slot = get_current_time_slot(config['time_slots'])  # Determine the current time slot
     if time_slot is None:
-        logger.error("Nessun slot orario trovato per l'ora attuale.")
+        logger.error("No time slot found for the current time.")
         return
 
-    logger.info(f"Slot orario trovato: {time_slot['name']}")
-    distribution = time_slot['distribution']
+    logger.info(f"Time slot found: {time_slot['name']}")
+    distribution = time_slot['distribution']  # Distribution of users across nodes for this time slot
 
-    num_users = config['num_users']
-    channel, _ = get_rabbitmq_channel()
+    num_users = config['num_users']  # Total number of users to simulate
+    channel, _ = get_rabbitmq_channel()  # Get RabbitMQ channel
 
-    # Estrai ogni evento presente nella lista "info"
+    # Extract each event from the "info" list in the message
     for alert_info in msg.get("info", []):
         event = alert_info.get("event", "Unknown")
-        logger.info(f"Gestione evento di tipo '{event}'")
+        logger.info(f"Processing event of type '{event}'")
 
     for node_type, probability in distribution.items():
-        nodes = get_nodes_by_type(node_type)
+        nodes = get_nodes_by_type(node_type)  # Retrieve nodes by type (e.g., classrooms, corridors)
 
         if not nodes:
-            logger.error(f"Nessun nodo disponibile per il tipo {node_type}. Impossibile simulare il movimento.")
+            logger.error(f"No nodes available for node type {node_type}. Cannot simulate movement.")
             continue
 
-        for _ in range(int(num_users * probability)):
+        for _ in range(int(num_users * probability)):  # Simulate users based on the probability distribution
             node = random.choice(nodes)
             x, y, z = generate_random_position_within_node(node)
-            user_id = generate_unique_user_id()
-            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event=event)
+            user_id = generate_unique_user_id()  # Generate a unique user ID
+            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event=event)  # Send user position
 
-    logger.info("Elaborazione messaggio di allerta completata.")
+    logger.info("Alert message processing completed.")
 
 
 def handle_evacuation(msg):
-    """Gestisce il messaggio Evacuation"""
+    """Handles the 'Evacuation' message type"""
     if not simulation_active:
-        return  # Se la simulazione è stata fermata, non fare nulla
+        return  # Do nothing if simulation is stopped
 
-    user_id = msg['user_id']
-    evacuation_path = msg['evacuation_path']
+    user_id = msg['user_id']  # Get the user ID
+    evacuation_path = msg['evacuation_path']  # Get the evacuation path
 
-    # Recupera la posizione attuale dell'utente
+    # Retrieve the current position of the user
     current_position = get_current_position(user_id)
     if not current_position:
-        logger.warning(f"Posizione utente {user_id} non trovata nel DB.")
+        logger.warning(f"User {user_id} position not found in the database.")
         return
 
     x, y, z, node_id = current_position
-    channel, _ = get_rabbitmq_channel()
+    channel, _ = get_rabbitmq_channel()  # Get RabbitMQ channel
 
-    # Per ogni arco nel percorso di evacuazione
+    # For each arc in the evacuation path
     for arc_id in evacuation_path:
-        arc = get_arc_by_id(arc_id)
+        arc = get_arc_by_id(arc_id)  # Get arc details by ID
         if arc:
-            final_node_id = arc['final_node']
-            final_node = get_nodes_by_type()  # Usa una funzione simile per ottenere i dettagli del final_node
-            x, y, z = generate_random_position_within_node(final_node)
-            send_position_to_position_manager(channel, user_id, x, y, z, final_node_id)
+            final_node_id = arc['final_node']  # Get the final node in the path
+            final_node = get_nodes_by_type()  # Retrieve final node details
+            x, y, z = generate_random_position_within_node(final_node)  # Generate new random position
+            send_position_to_position_manager(channel, user_id, x, y, z, final_node_id)  # Send the new position
 
-    logger.info(f"Evacuazione completata per l'utente {user_id}.")
+    logger.info(f"Evacuation completed for user {user_id}.")
 
 
 def handle_stop():
-    """Gestisce il messaggio Stop"""
+    """Handles the 'Stop' message type"""
     global simulation_active
-    logger.info("Ricevuto messaggio Stop. Interrompo la simulazione.")
-    simulation_active = False  # Ferma tutte le operazioni
-
+    logger.info("Received Stop message. Stopping the simulation.")
+    simulation_active = False  # Stop the simulation
 
 def simulate_user_movement(msg):
-    """Simula il movimento degli utenti in base agli eventi ricevuti"""
-    msg_type = msg.get('msgType')
+    """Simulates user movement based on the received event message"""
+    msg_type = msg.get('msgType')  # Get the type of message (Alert, Evacuation, Stop)
     
     if msg_type == 'Alert':
-        handle_alert(msg)
+        handle_alert(msg)  # Handle the alert event
     elif msg_type == 'Evacuation':
-        handle_evacuation(msg)
+        handle_evacuation(msg)  # Handle the evacuation event
     elif msg_type == 'Stop':
-        handle_stop()
+        handle_stop()  # Stop the simulation if the stop event is received
     else:
-        logger.warning(f"Tipo di messaggio non riconosciuto: {msg_type}")
+        logger.warning(f"Unrecognized message type: {msg_type}")  # Log a warning if the message type is unknown

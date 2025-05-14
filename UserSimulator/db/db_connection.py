@@ -4,17 +4,23 @@ from UserSimulator.utils.logger import logger
 
 
 def create_connection():
-    """Crea una connessione al database PostgreSQL"""
+    """
+    Creates and returns a connection to the PostgreSQL database.
+    
+    Returns:
+        conn (psycopg2.extensions.connection): A connection object if successful.
+        None: If the connection fails.
+    """
     try:
         conn = psycopg2.connect(
-            dbname="map_position_db",  # Modifica con il nome del tuo DB
-            user="postgres",      # Modifica con il tuo username DB
-            password="postgres",  # Modifica con la tua password DB
-            host="localhost",      # O l'indirizzo IP del server DB
-            port="5432"            # Porta di default per PostgreSQL
+            dbname="map_position_db",   # Name of the target PostgreSQL database
+            user="postgres",            # Database username
+            password="postgres",        # Database password
+            host="localhost",           # Host where the DB server is running (can be IP or domain)
+            port="5432"                 # Default PostgreSQL port
         )
-        logger.info("Connessione al database riuscita.")
+        logger.info("Database connection established successfully.")
         return conn
     except Exception as e:
-        logger.error(f"Errore nella connessione al database: {e}")
+        logger.error(f"Failed to connect to the database: {e}")
         return None

@@ -1,22 +1,28 @@
 import pika
-from UserSimulator.utils.logger import logger  # Importa il logger
+from UserSimulator.utils.logger import logger  # Import the centralized logger utility
+
 
 def get_rabbitmq_channel():
-    """Crea una connessione e un canale RabbitMQ"""
+    """
+    Establishes a connection to RabbitMQ and creates a communication channel.
+
+    Returns:
+        tuple: (channel, connection) if successful, otherwise (None, None).
+    """
     try:
-        logger.info("Tentativo di connessione a RabbitMQ...")
-        
-        # Crea una connessione a RabbitMQ
+        logger.info("Attempting to connect to RabbitMQ...")
+
+        # Establish a blocking connection to the RabbitMQ server
         connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-        
-        # Crea un canale
+
+        # Create a new channel from the connection
         channel = connection.channel()
-        
-        logger.info("Connessione a RabbitMQ riuscita e canale creato.")
-        
+
+        logger.info("Successfully connected to RabbitMQ and created a channel.")
+
         return channel, connection
-    
+
     except Exception as e:
-        # Logga l'errore in caso di fallimento
-        logger.error(f"Errore nella connessione a RabbitMQ: {e}")
+        # Log the error if the connection or channel creation fails
+        logger.error(f"Failed to connect to RabbitMQ: {e}")
         return None, None

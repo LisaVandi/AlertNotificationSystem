@@ -1,35 +1,61 @@
-Cosa fa l'UserSimulator
-1. Ascolta due code:
-user_simulator_queue:
+UserSimulator Microservice
+Overview
 
-Se riceve msgType = "Stop" → si ferma.
+The UserSimulator microservice simulates user movement and positioning based on external inputs. It listens to two message queues and generates position updates for virtual users either in response to alerts or predefined evacuation paths.
 
-Se riceve msgType = "Alert" →
+Features
+Listens to Two Queues
+1. user_simulator_queue
 
-Legge numero e tipo di utenti da simulare da un file YAML.
+    If a message with msgType = "Stop" is received:
+    → The service stops processing.
 
-Recupera i nodi dal DB (nodes da map_position_db).
+    If a message with msgType = "Alert" is received:
 
-Genera per ciascun utente una posizione casuale interna al nodo selezionato.
+        Loads the number and types of users to simulate from a YAML configuration file.
 
-Aggiunge event preso dal messaggio originale.
+        Retrieves node data from the map_position_db.
 
-Invia a position_queue un messaggio con:
-user_id, x, y, z, id_nodo, event.
+        Generates a random position inside each selected node for every user.
 
-evacuation_paths_queue:
+        Adds the event field from the original message.
 
-Riceve: { "user_id": ..., "evacuation_path": ["arc_id1", "arc_id2", ...] }
+        Sends a message to the position_queue with:
+        {
+        "user_id": "...",
+        "x": ...,
+        "y": ...,
+        "z": ...,
+        "node_id": "...",
+        "event": "..."
+        }
+2. evacuation_paths_queue
 
-Recupera la posizione attuale dell'utente da current_position in map_position_db.
+    Receives messages like:
+    {
+    "user_id": "...",
+    "evacuation_path": ["arc_id1", "arc_id2", ...]
+    }
 
-Per ogni arc_id del path:
+    For each arc in the path:
 
-Cerca nella tabella archs l'arco corrispondente.
+        Retrieves the user’s current position from the current_position table in map_position_db.
 
-Prende il final_node.
+        Finds the arc in the archs table.
 
-Simula nuova posizione (x, y, z) interna al final_node.
+        Gets the final_node of the arc.
 
-Invia nuovo messaggio a position_queue:
-user_id, x, y, z, id_nodo (senza event questa volta).
+        Simulates a new position inside that node.
+
+        Sends an update to the position_queue:
+        {
+        "user_id": "...",
+        "x": ...,
+        "y": ...,
+        "z": ...,
+        "node_id": "..."
+        }
+
+Configuration
+
+The service expects a YAML file specifying how many and what types of users to simulate.
