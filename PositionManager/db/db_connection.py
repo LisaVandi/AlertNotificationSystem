@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2 import sql
-from UserSimulator.utils.logger import logger
+from PositionManager.utils.logger import logger
 
 
 def create_connection():

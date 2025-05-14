@@ -1,4 +1,4 @@
-# === config/evacuation_config.yaml ===
+dispatch_threshold: 10
 
 emergencies:
   Flood:
