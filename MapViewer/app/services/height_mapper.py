@@ -4,8 +4,7 @@ Z-Height Mapper Utility
 This module provides functions to calculate height values based on floor levels
 and translate between different coordinate spaces (real-world vs. model).
 """
-import os
-import math
+
 
 class HeightMapper:
     def __init__(self, z_ranges: dict, scale_config: dict):
@@ -13,6 +12,7 @@ class HeightMapper:
         self.height_per_floor = z_ranges.get("height_per_floor", 3)
         self.z_start_at_floor_zero = z_ranges.get("z_start_at_floor_zero", True)
         self.scale_factor = scale_config.get("scale_factor", 200)
+        self.px_per_cm = scale_config.get("pixels_per_cm", 37.8)
     
     def get_floor_height(self, floor_level):
         """
@@ -26,8 +26,7 @@ class HeightMapper:
         """
         if self.z_start_at_floor_zero:
             return self.base_z + (floor_level * self.height_per_floor)
-        else:
-            return self.base_z + ((floor_level - 1) * self.height_per_floor)
+        return self.base_z + ((floor_level - 1) * self.height_per_floor)
     
     def get_floor_z_range(self, floor_level):
         """
@@ -42,25 +41,6 @@ class HeightMapper:
         z_min = self.get_floor_height(floor_level)
         z_max = z_min + self.height_per_floor
         return (z_min, z_max)
-    
-    def get_floor_from_height(self, height):
-        """
-        Determine the floor level from a given height
-        
-        Args:
-            height (float): Height in meters
-            
-        Returns:
-            int: The floor level corresponding to the height
-        """
-        if self.z_start_at_floor_zero:
-            normalized_height = height - self.base_z
-            floor = math.floor(normalized_height / self.height_per_floor)
-            return max(0, floor)  
-        else:
-            normalized_height = height - self.base_z
-            floor = math.floor(normalized_height / self.height_per_floor) + 1
-            return max(1, floor)
     
     def meters_to_model_units(self, meters):
         """

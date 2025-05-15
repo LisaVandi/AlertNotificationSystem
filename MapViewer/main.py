@@ -1,83 +1,29 @@
-import cv2
-import psycopg2
-import re
+import json
 import os
-
-from fastapi import Body, FastAPI, Query
-from fastapi.responses import JSONResponse
+import psycopg2
+from fastapi import FastAPI, Body, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from MapViewer.app.services.graph_exporter import get_graph_json
-from MapViewer.app.services.graph_extractor import extract_nodes_and_edges_from_map, insert_graph_into_db
-from MapViewer.app.services.graph_manager import GraphManager
+from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
 from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 
 app = FastAPI()
-graph_manager = GraphManager()
 
 IMG_FOLDER = "MapViewer/public/img"
 PUBLIC_FOLDER = "MapViewer/public"
 JSON_OUTPUT_FOLDER = os.path.join(PUBLIC_FOLDER, "json")
 
-# Mount public directory to serve frontend and images
 app.mount("/MapViewer/public", StaticFiles(directory=PUBLIC_FOLDER), name="public")
+
 connected_websockets = set()
 
 conn = create_connection()
 create_tables()
 conn.close()
-
-def generate_all_graphs_from_images_if_needed():
-    try:
-        conn = psycopg2.connect(**DATABASE_CONFIG)
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM nodes")
-        node_count = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-
-        if node_count > 0:
-            print(f"[INFO] {node_count} nodes already exist. Skipping graph generation.")
-            return
-
-        print("[INFO] Generating graphs from image files...")
-
-        for filename in os.listdir(IMG_FOLDER):
-            if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-                continue
-
-            match = re.search(r'floor(\d+)', filename, re.IGNORECASE)
-            if not match:
-                continue
-
-            floor_level = int(match.group(1))
-            image_path = os.path.join(IMG_FOLDER, filename)
-            img = cv2.imread(image_path)
-            if img is None:
-                print(f"[WARNING] Could not read image {image_path}")
-                continue
-            height, width = img.shape[:2]
-
-            nodes, arcs = extract_nodes_and_edges_from_map(image_path, floor_level)
-            insert_graph_into_db(nodes, arcs, floor_level)
-
-            output_path = os.path.join(JSON_OUTPUT_FOLDER, f"floor{floor_level}.json")
-            graph_data = get_graph_json(
-                floor_level=floor_level,
-                image_filename=filename,
-                image_width=width,
-                image_height=height,
-                output_path=output_path
-            )
-            graph_manager.load_graph(floor_level, graph_data["nodes"], graph_data["arcs"])
-            
-        print("[INFO] Graphs and JSON files generated.")
-    except Exception as e:
-        print(f"[ERROR] Error during automatic graph generation: {e}")
-
-generate_all_graphs_from_images_if_needed()
 
 @app.get("/api/images")
 def list_images():
@@ -94,17 +40,6 @@ def get_map(
     json_path = os.path.join(JSON_OUTPUT_FOLDER, f"floor{floor}.json")
     data = get_graph_json(floor, image_filename, image_width, image_height, output_path=json_path)
     return JSONResponse(content=data)
-
-@app.post("/api/generate-json")
-def generate_json(
-    floor: int = Body(...),
-    image_filename: str = Body(...),
-    image_width: int = Body(...),
-    image_height: int = Body(...)
-):
-    output_path = os.path.join(JSON_OUTPUT_FOLDER, f"floor{floor}.json")
-    data = get_graph_json(floor, image_filename, image_width, image_height, output_path=output_path)
-    return JSONResponse(content={"message": f"{output_path} successfully created.", "json_preview": data})
 
 @app.post("/api/update-node-type")
 def update_node_type(data: dict = Body(...)):
@@ -124,7 +59,6 @@ def update_node_type(data: dict = Body(...)):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-
 @app.get("/api/in-memory-graph")
 def get_graph_data(floor: int):
     G = graph_manager.get_graph(floor)
@@ -137,17 +71,63 @@ def get_graph_data(floor: int):
 
 @app.get("/api/node-types")
 def get_node_types():
-    """
-    Restituisce i tipi di nodo in formato array, es:
-    {
-      "node_types": [
-        { "type": "classroom", "display_name": "Classroom", "capacity": 5 },
-        … 
-      ]
-    }
-    """
     types_list = [
         {"type": key, "display_name": info["display_name"], **({"capacity": info["capacity"]} if "capacity" in info else {})}
         for key, info in NODE_TYPES.items()
     ]
     return JSONResponse(content={"node_types": types_list})
+
+@app.get("/")
+async def get_index():
+    return FileResponse("MapViewer/public/index.html")
+
+@app.websocket("/ws/map")
+async def ws_map(websocket: WebSocket):
+    await websocket.accept()
+    connected_websockets.add(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+
+            if message.get("action") == "new_node":
+                x_px = message["x_px"]
+                y_px = message["y_px"]
+                floor = message["floor"]
+                node_type = message["node_type"]
+
+                new_node = graph_manager.add_node(x_px, y_px, floor, node_type)
+
+                for ws in connected_websockets:
+                    await ws.send_text(json.dumps({
+                        "action": "node_created",
+                        "node": {
+                            "node_id": new_node["node_id"],
+                            "x": new_node["x"],
+                            "y": new_node["y"],
+                            "floor_level": new_node["floor_level"],
+                            "node_type": new_node["node_type"],
+                            "current_occupancy": new_node.get("current_occupancy", 0),
+                            "capacity": new_node.get("capacity", 0)
+                        }
+                    }))
+
+            elif message.get("action") == "create_edge":
+                from_id = message["from"]
+                to_id = message["to"]
+                floor = message["floor"]
+
+                graph_manager.add_edge(from_id, to_id, floor)
+
+                for ws in connected_websockets:
+                    await ws.send_text(json.dumps({
+                        "action": "edge_created",
+                        "edge": {
+                            "from": from_id,
+                            "to": to_id,
+                            "floor": floor
+                        }
+                    }))
+
+    except WebSocketDisconnect:
+        connected_websockets.remove(websocket)

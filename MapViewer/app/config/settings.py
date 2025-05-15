@@ -10,24 +10,26 @@ SCALE_CONFIG = {
     "scale_factor": 200,
     "pixels_per_cm": 37.8, 
     "edge_threshold_cm": 15,  
-    "min_area_px": 500, 
+    "min_area_px": 1000, 
     "default_node_capacity_per_sqm": 0.5,  # Default node capacity per square meter
 }
 
 NODE_TYPES = {
     "classroom": {
         "display_name": "Classroom",
-        "capacity": 5
+        "capacity": 50
     },
     "office": {
         "display_name": "Office",
         "capacity": 3
     },
     "coffee_shop": {
-        "display_name": "Coffee Shop"
+        "display_name": "Coffee Shop",
+        "capacity": 100
     },
     "canteen": {
-        "display_name": "Canteen"
+        "display_name": "Canteen",
+        "capacity": 100
     },
     "bathroom": {
         "display_name": "Bathroom",
@@ -35,15 +37,15 @@ NODE_TYPES = {
     },
     "stairs": {
         "display_name": "Stairs",
-        "capacity": 0
+        "capacity": 100
     },
     "corridor": {
         "display_name": "Corridor",
-        "capacity": 0
+        "capacity": 100
     }, 
     "outdoor": {
         "display_name": "Outdoor",
-        "capacity": 0
+        "capacity": 1000
     }
 }
 
