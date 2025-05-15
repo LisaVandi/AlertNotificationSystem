@@ -34,6 +34,8 @@ class AlertedUsersConsumer:
                 send_alert_to_user_simulator(self.rabbitmq, alert_data)
             
             elif "evacuation_path" in alert_data:
+                alert_data["msgType"] = "Evacuation"
+                logger.info(f"Sending evacuation path with msgType 'Evacuation' to User Simulator: {alert_data}")
                 send_evacuation_path_to_user_simulator(self.rabbitmq, alert_data)
 
             logger.info("Evacuation path processed successfully")
