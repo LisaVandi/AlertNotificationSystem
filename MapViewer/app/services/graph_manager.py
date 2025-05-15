@@ -6,7 +6,7 @@ from MapViewer.app.services.height_mapper import HeightMapper
 
 class GraphManager:
     def __init__(self):
-        self.graphs = {}  # { floor_level: nx.Graph }
+        self.graphs = {}
         self.lock = Lock()
         self.height_mapper = HeightMapper(Z_RANGES, SCALE_CONFIG)
 
@@ -14,20 +14,11 @@ class GraphManager:
         with self.lock:
             return self.graphs.get(floor_level)
 
-    def load_graph(self, floor_level, nodes, arcs):
-        G = nx.Graph()
-        for node in nodes:
-            G.add_node(node['id'], **node)
-        for arc in arcs:
-            G.add_edge(arc['from'], arc['to'], **arc)
-        with self.lock:
-            self.graphs[floor_level] = G
-
     def add_node(self, x_px: int, y_px: int, floor: int, node_type: str) -> dict:
-        G = self.graphs.setdefault(floor, nx.Graph())
-        tolerance_px = 5
-
         with self.lock:
+            G = self.graphs.setdefault(floor, nx.Graph())
+
+            tolerance_px = 5
             for node_id, data in G.nodes(data=True):
                 if abs(data.get('x') - x_px) <= tolerance_px and abs(data.get('y') - y_px) <= tolerance_px:
                     return {
@@ -43,32 +34,6 @@ class GraphManager:
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
         try:
-            tolerance_model_units = self.height_mapper.pixels_to_model_units(tolerance_px) * 100
-            x_model = int(self.height_mapper.pixels_to_model_units(x_px) * 100)
-            y_model = int(self.height_mapper.pixels_to_model_units(y_px) * 100)
-
-            cur.execute("""
-                SELECT node_id FROM nodes
-                WHERE floor_level = %s
-                  AND abs((x1+x2)/2 - %s) <= %s
-                  AND abs((y1+y2)/2 - %s) <= %s
-            """, (floor, x_model, tolerance_model_units, y_model, tolerance_model_units))
-            row = cur.fetchone()
-            if row:
-                node_id = row[0]
-                with self.lock:
-                    G.add_node(node_id, x=x_px, y=y_px, floor_level=floor, node_type=node_type,
-                               current_occupancy=0, capacity=NODE_TYPES[node_type].get("capacity", SCALE_CONFIG["default_node_capacity_per_sqm"]))
-                return {
-                    "node_id": node_id,
-                    "x": x_px,
-                    "y": y_px,
-                    "floor_level": floor,
-                    "node_type": node_type,
-                    "current_occupancy": 0,
-                    "capacity": NODE_TYPES[node_type].get("capacity", SCALE_CONFIG["default_node_capacity_per_sqm"])
-                }
-
             delta_px = 10
             x1_px = x_px - delta_px
             x2_px = x_px + delta_px
@@ -114,49 +79,15 @@ class GraphManager:
         with self.lock:
             G = self.graphs.get(floor)
             if G is None:
-                print(f"[ERROR] Grafo piano {floor} non trovato in memoria")
-                return
+                raise ValueError(f"Grafo piano {floor} non trovato")
 
-            def load_node_from_db(node_id):
-                conn = psycopg2.connect(**DATABASE_CONFIG)
-                cur = conn.cursor()
-                try:
-                    cur.execute("""
-                        SELECT (x1+x2)/2 AS x, (y1+y2)/2 AS y, node_type, current_occupancy, capacity
-                        FROM nodes
-                        WHERE node_id = %s
-                    """, (node_id,))
-                    row = cur.fetchone()
-                    if row:
-                        x, y, node_type, occ, cap = row
-                        G.add_node(node_id, x=x, y=y, floor_level=floor, node_type=node_type,
-                                   current_occupancy=occ, capacity=cap)
-                        print(f"[DEBUG] Nodo {node_id} caricato da DB in grafo piano {floor}")
-                        return True
-                    else:
-                        print(f"[ERROR] Nodo {node_id} non trovato nel DB")
-                        return False
-                finally:
-                    cur.close()
-                    conn.close()
-
-            if node1 not in G.nodes:
-                loaded = load_node_from_db(node1)
-                if not loaded:
-                    print(f"[ERROR] Nodo {node1} mancante e non caricato dal DB, aborto add_edge")
-                    return
-            if node2 not in G.nodes:
-                loaded = load_node_from_db(node2)
-                if not loaded:
-                    print(f"[ERROR] Nodo {node2} mancante e non caricato dal DB, aborto add_edge")
-                    return
+            if node1 not in G.nodes or node2 not in G.nodes:
+                raise ValueError(f"Nodi {node1} o {node2} non trovati nel grafo")
 
             if G.has_edge(node1, node2):
-                print(f"[INFO] Arco tra {node1} e {node2} già presente")
-                return
+                return  # arco già presente
 
             G.add_edge(node1, node2)
-            print(f"[DEBUG] Arco aggiunto in memoria, ora persisto nel DB")
             self._persist_edge(node1, node2, floor)
 
     def _persist_edge(self, node1: int, node2: int, floor: int):
@@ -165,7 +96,7 @@ class GraphManager:
         try:
             G = self.graphs.get(floor)
             if not G:
-                raise ValueError("Graph not found for the specified floor level.")
+                raise ValueError("Grafo non trovato")
 
             x1_px = G.nodes[node1]['x']
             y1_px = G.nodes[node1]['y']
@@ -213,12 +144,26 @@ class GraphManager:
 
             arc_id = cur.fetchone()[0]
             conn.commit()
-            print(f"[DEBUG] Arco {arc_id} inserito nel database tra {node1} e {node2}")
-        except Exception as e:
-            conn.rollback()
-            print(f"[ERROR] Errore inserimento arco: {e}")
+            print(f"Arco {arc_id} inserito tra nodi {node1} e {node2}")
         finally:
             cur.close()
             conn.close()
+
+    def load_graph(self, floor_level, nodes, arcs):
+        with self.lock:
+            G = nx.Graph()
+            for node in nodes:
+                node_id = node.get("id") or node.get("node_id")
+                if node_id is None:
+                    continue
+                G.add_node(node_id, **node)
+            for arc in arcs:
+                from_node = arc.get("initial_node") 
+                to_node = arc.get("final_node")
+                if from_node is None or to_node is None:
+                    continue
+                G.add_edge(from_node, to_node, **arc)
+            self.graphs[floor_level] = G
+            print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
 
 graph_manager = GraphManager()

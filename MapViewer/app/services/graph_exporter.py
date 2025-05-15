@@ -26,7 +26,7 @@ def get_graph_json(floor_level: int, image_filename: str, image_width: int, imag
         raise
 
     graph_data = {
-        "image": f"/img/{image_filename}",
+        "image": f"/static/img/{image_filename}",
         "imageWidth": image_width,
         "imageHeight": image_height,
         "nodes": nodes,

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Map Viewer</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -19,17 +19,30 @@
       border: 1px solid #ccc; 
       display: none; 
     }
+    #btnAddEdge, #btnUpdateGraph {
+      position: fixed;
+      z-index: 1000;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    #btnAddEdge { top: 50px; right: 10px; }
+    #btnUpdateGraph { top: 90px; right: 10px; } 
+
   </style>
 </head>
 <body>
+  <button id="btnAddEdge">Aggiungi arco</button>
+  <button id="btnUpdateGraph">Aggiorna grafo</button> 
+
   <div id="maps"></div>
+
   <div id="node-type-selector">
-    <label for="node-type">Node Type:</label>
+    <label for="node-type">Tipo nodo:</label>
     <select id="node-type"></select>
-    <button onclick="updateNodeType()">Update</button>
+    <button onclick="updateNodeType()">Aggiungi nodo</button>
   </div>
-  
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/MapViewer/public/map.js"></script>
+  <script src="/static/map.js"></script>
 </body>
 </html>
