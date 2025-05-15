@@ -193,7 +193,53 @@ function addClickListener(mapObj) {
   });
 }
 
-// Carica e disegna grafo piano
+// // Carica e disegna grafo piano
+// async function loadGraph(floor, map, markersLayer, arcsLayer) {
+//   const resp = await fetch(`/api/in-memory-graph?floor=${floor}`);
+//   if (!resp.ok) {
+//     alert("Grafo non trovato per piano " + floor);
+//     return;
+//   }
+//   const data = await resp.json();
+
+//   if (!data.nodes.length && !data.arcs.length) {
+//     console.warn(`Nessun dato per piano ${floor}`);
+//     return;
+//   }
+
+//   markersLayer.clearLayers();
+//   arcsLayer.clearLayers();
+
+//   const mapObj = maps.find(m => m.floor === floor);
+
+//   data.nodes.forEach(node => {
+//     const point = L.point(node.x, node.y);
+//     const latlng = map.containerPointToLatLng(point);
+
+//     const marker = createNodeMarker(node, latlng, mapObj);
+//     markersLayer.addLayer(marker);
+//   });
+
+//   data.arcs.forEach(arc => {
+//     if (!arc.active) return;  
+
+//     const fromNode = data.nodes.find(n => n.id === arc.from);
+//     const toNode = data.nodes.find(n => n.id === arc.to);
+//     if (!fromNode || !toNode) return;
+
+//     const fromPoint = L.point(fromNode.x, fromNode.y);
+//     const toPoint = L.point(toNode.x, toNode.y);
+
+//     const fromLatLng = map.containerPointToLatLng(fromPoint);
+//     const toLatLng = map.containerPointToLatLng(toPoint);
+
+//     L.polyline([fromLatLng, toLatLng], {
+//       color: "black",
+//       weight: 2,
+//     }).addTo(arcsLayer);
+//   });
+// }
+
 async function loadGraph(floor, map, markersLayer, arcsLayer) {
   const resp = await fetch(`/api/in-memory-graph?floor=${floor}`);
   if (!resp.ok) {
@@ -201,6 +247,8 @@ async function loadGraph(floor, map, markersLayer, arcsLayer) {
     return;
   }
   const data = await resp.json();
+
+  console.log("Dati grafo caricati:", data);  
 
   if (!data.nodes.length && !data.arcs.length) {
     console.warn(`Nessun dato per piano ${floor}`);
@@ -210,19 +258,16 @@ async function loadGraph(floor, map, markersLayer, arcsLayer) {
   markersLayer.clearLayers();
   arcsLayer.clearLayers();
 
-  const mapObj = maps.find(m => m.floor === floor);
-
   data.nodes.forEach(node => {
     const point = L.point(node.x, node.y);
     const latlng = map.containerPointToLatLng(point);
 
-    const marker = createNodeMarker(node, latlng, mapObj);
+    const marker = createNodeMarker(node, latlng, maps.find(m => m.floor === floor));
     markersLayer.addLayer(marker);
   });
 
   data.arcs.forEach(arc => {
-    if (!arc.active) return;  
-
+    if (!arc.active) return;
     const fromNode = data.nodes.find(n => n.id === arc.from);
     const toNode = data.nodes.find(n => n.id === arc.to);
     if (!fromNode || !toNode) return;
@@ -234,8 +279,9 @@ async function loadGraph(floor, map, markersLayer, arcsLayer) {
     const toLatLng = map.containerPointToLatLng(toPoint);
 
     L.polyline([fromLatLng, toLatLng], {
-      color: "black",
-      weight: 2,
+      color: "#333333",
+      weight: 3,
+      opacity: 0.8,
     }).addTo(arcsLayer);
   });
 }

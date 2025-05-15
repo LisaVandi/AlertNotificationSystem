@@ -149,6 +149,23 @@ class GraphManager:
             cur.close()
             conn.close()
 
+    # def load_graph(self, floor_level, nodes, arcs):
+    #     with self.lock:
+    #         G = nx.Graph()
+    #         for node in nodes:
+    #             node_id = node.get("id") or node.get("node_id")
+    #             if node_id is None:
+    #                 continue
+    #             G.add_node(node_id, **node)
+    #         for arc in arcs:
+    #             from_node = arc.get("initial_node") 
+    #             to_node = arc.get("final_node")
+    #             if from_node is None or to_node is None:
+    #                 continue
+    #             G.add_edge(from_node, to_node, **arc)
+    #         self.graphs[floor_level] = G
+    #         print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
+
     def load_graph(self, floor_level, nodes, arcs):
         with self.lock:
             G = nx.Graph()
@@ -158,7 +175,7 @@ class GraphManager:
                     continue
                 G.add_node(node_id, **node)
             for arc in arcs:
-                from_node = arc.get("initial_node") 
+                from_node = arc.get("initial_node")
                 to_node = arc.get("final_node")
                 if from_node is None or to_node is None:
                     continue

@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import networkx as nx
 
 from MapViewer.app.services.graph_exporter import get_graph_json
-from MapViewer.app.services.graph_manager import graph_manager, GraphManager
+from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
 from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
@@ -56,13 +56,17 @@ def preload_graphs():
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
             AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
         """, (floor, floor))
-        arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5]} for r in cur.fetchall()]
+        arc_rows = cur.fetchall()
+        print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
+        for row in arc_rows:
+            print(f"Arco: initial_node={row[0]}, final_node={row[1]}, active={row[6]}")
+
+        arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
 
         graph_manager.load_graph(floor, nodes, arcs)
     cur.close()
     conn.close()
 
-graph_manager = GraphManager()
 preload_graphs()
 
 @app.get("/api/images")
@@ -114,9 +118,20 @@ def get_graph(floor: int):
     G = graph_manager.get_graph(floor)
     if not G:
         return JSONResponse({"nodes": [], "arcs": []})
-    
+
     nodes = [{"id": n, **d} for n, d in G.nodes(data=True)]
-    edges = [{"from": u, "to": v, **d} for u, v, d in G.edges(data=True)]
+
+    edges = []
+    for u, v, d in G.edges(data=True):
+        edge_dict = dict(d)
+        edge_dict["from"] = u
+        edge_dict["to"] = v
+        edge_dict.pop("initial_node", None)
+        edge_dict.pop("final_node", None)
+        edges.append(edge_dict)
+
+    print(f"Returning {len(nodes)} nodes and {len(edges)} edges for floor {floor}")
+
     return JSONResponse({"nodes": nodes, "arcs": edges})
 
 @app.get("/api/node-types")
