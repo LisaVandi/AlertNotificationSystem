@@ -117,6 +117,10 @@ class RabbitMQHandler:
         """Reconnect to RabbitMQ"""
         self.close()
         self._connect()
+        
+    def purge_queue(self, queue_name: str):
+        self.channel.queue_purge(queue=queue_name)
+        print(f"[INFO] Queue '{queue_name}' purged.")
 
     def close(self):
         """Cleanly close connections"""

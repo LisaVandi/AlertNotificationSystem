@@ -17,10 +17,12 @@ def main():
         password=RABBITMQ_PASSWORD
     )
 
-    # Declare required queues
-    for queue in [ALERT_QUEUE, MAP_MANAGER_QUEUE, 
+    queues = [ALERT_QUEUE, MAP_MANAGER_QUEUE, 
                     USER_SIMULATOR_QUEUE, POSITION_QUEUE,
-                    ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE]:
+                    ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE]
+    
+    # Declare required queues
+    for queue in queues:
         rabbitmq_handler.declare_queue(queue)
 
     consumer = AlertConsumer(rabbitmq_handler)
@@ -29,6 +31,13 @@ def main():
 
     logger.info("Waiting for consumer to finish processing...")
     time.sleep(5)
+    
+    logger.info("Purging all queues before shutdown...")
+    for queue in queues:
+        try:
+            rabbitmq_handler.purge_queue(queue)
+        except Exception as e:
+            logger.error(f"Failed to purge queue {queue}: {e}")
 
 if __name__ == "__main__":
     main()
