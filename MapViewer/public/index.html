@@ -5,36 +5,81 @@
   <title>Map Viewer</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body, html { margin: 0; padding: 0; }
-    .map-container { margin-bottom: 40px; }
-    .title { font-weight: bold; padding: 10px; }
-    .map { width: 100vw; height: 70vh; }
-    #node-type-selector { 
-      position: fixed; 
-      top: 10px; 
-      right: 10px; 
-      z-index: 1000; 
-      background: white; 
-      padding: 10px; 
-      border: 1px solid #ccc; 
-      display: none; 
+    body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+
+    /* Wrapper che limita larghezza e centra */
+    #maps-wrapper {
+      max-width: 1200px;    /* max larghezza desiderata */
+      margin: 0 auto;       /* centra orizzontalmente */
+      padding: 10px;
+      box-sizing: border-box;
     }
-    #btnAddEdge, #btnUpdateGraph {
+
+    /* Container mappe: larghezza 100% del wrapper, margine per distanziare */
+    .map-container {
+      margin-bottom: 40px;
+      width: 100%;
+      /* altezza dinamica gestita da JS */
+      position: relative;
+    }
+
+    .title {
+      font-weight: bold;
+      padding: 10px;
+    }
+
+    /* Non più vw/vh ma 100% per occupare il container */
+    .map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Selettore tipo nodo */
+    #node-type-selector {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      display: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* Pulsanti fissi */
+    #btnAddEdge, #btnUpdateGraph, #btnCancelNodeType {
       position: fixed;
       z-index: 1000;
       padding: 8px 12px;
       cursor: pointer;
+      background-color: #2196F3;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
     }
+
+    #btnAddEdge:hover, #btnUpdateGraph:hover, #btnCancelNodeType:hover {
+      background-color: #1976D2;
+    }
+
     #btnAddEdge { top: 50px; right: 10px; }
     #btnUpdateGraph { top: 90px; right: 10px; } 
-
+    #btnCancelNodeType { top: 130px; right: 10px; }
   </style>
 </head>
 <body>
   <button id="btnAddEdge">Aggiungi arco</button>
   <button id="btnUpdateGraph">Aggiorna grafo</button> 
+  <button id="btnCancelNodeType">Annulla</button>
 
-  <div id="maps"></div>
+  <!-- Wrapper per limitare larghezza e centrare -->
+  <div id="maps-wrapper">
+    <div id="maps"></div>
+  </div>
 
   <div id="node-type-selector">
     <label for="node-type">Tipo nodo:</label>

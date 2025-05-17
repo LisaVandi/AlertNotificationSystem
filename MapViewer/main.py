@@ -5,6 +5,7 @@ from fastapi import FastAPI, Body, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import networkx as nx
+import re
 
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
@@ -15,10 +16,6 @@ from MapViewer.db.db_setup import create_tables
 app = FastAPI()
 
 IMG_FOLDER = "MapViewer/public/img"
-# PUBLIC_FOLDER = "MapViewer/public"
-
-# app.mount("/MapViewer/public", StaticFiles(directory=PUBLIC_FOLDER), name="public")
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_FOLDER = os.path.join(BASE_DIR, "MapViewer", "public")
 JSON_OUTPUT_FOLDER = os.path.join(PUBLIC_FOLDER, "json")
@@ -32,46 +29,52 @@ conn.close()
 def preload_graphs():
     conn = psycopg2.connect(**DATABASE_CONFIG)
     cur = conn.cursor()
-    cur.execute("SELECT DISTINCT floor_level FROM nodes")
-    floors = [row[0] for row in cur.fetchall()]
-
-    if not floors:
-        print("Nessun piano trovato nel DB. Grafo in memoria inizializzato vuoto.")
+    try:
         with graph_manager.lock:
-            graph_manager.graphs[0] = nx.Graph()
+            graph_manager.graphs.clear()
+            print("Grafo in memoria svuotato.")
+
+        cur.execute("SELECT DISTINCT floor_level FROM nodes")
+        floors = [row[0] for row in cur.fetchall()]
+
+        if not floors:
+            print("Nessun piano trovato nel DB. Grafo in memoria vuoto.")
+            return
+
+        for floor in floors:
+            cur.execute("""
+                SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
+                FROM nodes WHERE floor_level = %s
+            """, (floor,))
+            nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
+
+            cur.execute("""
+                SELECT initial_node, final_node, x1, y1, x2, y2, active
+                FROM arcs
+                WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+                AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+            """, (floor, floor))
+            arc_rows = cur.fetchall()
+            print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
+
+            arcs = [{"initial_node": r[0], "final_node": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in arc_rows]
+
+            graph_manager.load_graph(floor, nodes, arcs)
+    finally:
         cur.close()
         conn.close()
-        return
-
-    for floor in floors:
-        cur.execute("""
-            SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
-            FROM nodes WHERE floor_level = %s
-        """, (floor,))
-        nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
-
-        cur.execute("""
-            SELECT initial_node, final_node, x1, y1, x2, y2, active
-            FROM arcs
-            WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
-            AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
-        """, (floor, floor))
-        arc_rows = cur.fetchall()
-        print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
-        for row in arc_rows:
-            print(f"Arco: initial_node={row[0]}, final_node={row[1]}, active={row[6]}")
-
-        arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
-
-        graph_manager.load_graph(floor, nodes, arcs)
-    cur.close()
-    conn.close()
 
 preload_graphs()
 
 @app.get("/api/images")
 def list_images():
     files = [f for f in os.listdir(IMG_FOLDER) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
+    def floor_num(fname):
+        m = re.search(r"floor(\d+)", fname, re.I)
+        return int(m.group(1)) if m else 0          
+
+    files.sort(key=floor_num)
+    
     return JSONResponse(content={"images": files})
 
 @app.get("/api/map")
@@ -91,17 +94,20 @@ def create_node(data: dict = Body(...)):
     y_px = data.get("y_px")
     floor = data.get("floor")
     node_type = data.get("node_type")
+    image_height = data.get("image_height")
 
-    if None in [x_px, y_px, floor, node_type]:
+    print(f"Received node creation data: x_px={x_px}, y_px={y_px}, floor={floor}, node_type={node_type}, image_height={image_height}")
+
+    if None in [x_px, y_px, floor, node_type, image_height]:
         raise HTTPException(status_code=400, detail="Missing node data")
 
-    new_node = graph_manager.add_node(x_px, y_px, floor, node_type)
+    new_node = graph_manager.add_node(x_px, y_px, floor, node_type, image_height)
     return JSONResponse({"node": new_node})
 
 @app.post("/api/edges")
 def create_edge(data: dict = Body(...)):
-    from_node = data.get("from")
-    to_node = data.get("to")
+    from_node = data.get("initial_node")
+    to_node = data.get("final_node")
     floor = data.get("floor")
 
     if None in [from_node, to_node, floor]:
@@ -115,24 +121,44 @@ def create_edge(data: dict = Body(...)):
 
 @app.get("/api/in-memory-graph")
 def get_graph(floor: int):
-    G = graph_manager.get_graph(floor)
-    if not G:
-        return JSONResponse({"nodes": [], "arcs": []})
+    headers = {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+    }
+    conn = psycopg2.connect(**DATABASE_CONFIG)
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
+            FROM nodes WHERE floor_level = %s
+        """, (floor,))
+        nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
 
-    nodes = [{"id": n, **d} for n, d in G.nodes(data=True)]
+        cur.execute("""
+            SELECT initial_node, final_node, x1, y1, x2, y2, active
+            FROM arcs
+            WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+            AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+        """, (floor, floor))
+        arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
 
-    edges = []
-    for u, v, d in G.edges(data=True):
-        edge_dict = dict(d)
-        edge_dict["from"] = u
-        edge_dict["to"] = v
-        edge_dict.pop("initial_node", None)
-        edge_dict.pop("final_node", None)
-        edges.append(edge_dict)
+        with graph_manager.lock:
+            if not nodes and not arcs:
+                graph_manager.graphs[floor] = nx.Graph()  
+            else:
+                graph_manager.load_graph(floor, nodes, arcs)
 
-    print(f"Returning {len(nodes)} nodes and {len(edges)} edges for floor {floor}")
+        G = graph_manager.get_graph(floor)
+        if not G:
+            return JSONResponse({"nodes": [], "arcs": []}, headers=headers)
 
-    return JSONResponse({"nodes": nodes, "arcs": edges})
+        nodes = [{"id": n, **d} for n, d in G.nodes(data=True)]
+        edges = [{"from": u, "to": v, **d} for u, v, d in G.edges(data=True)]
+
+        print(f"Returning {len(nodes)} nodes and {len(edges)} edges for floor {floor}")
+        return JSONResponse({"nodes": nodes, "arcs": edges}, headers=headers)
+    finally:
+        cur.close()
+        conn.close()
 
 @app.get("/api/node-types")
 def get_node_types():
@@ -146,3 +172,10 @@ def get_node_types():
 async def get_index():
     index_path = os.path.join(PUBLIC_FOLDER, "index.html")
     return FileResponse(index_path)
+
+@app.post("/api/reload-graph")
+def reload_graph():
+    with graph_manager.lock:
+        graph_manager.graphs.clear()  
+    preload_graphs()  #
+    return {"message": "Graph reloaded from database"}

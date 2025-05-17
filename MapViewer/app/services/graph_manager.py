@@ -14,7 +14,7 @@ class GraphManager:
         with self.lock:
             return self.graphs.get(floor_level)
 
-    def add_node(self, x_px: int, y_px: int, floor: int, node_type: str) -> dict:
+    def add_node(self, x_px: int, y_px: int, floor: int, node_type: str, image_height_px: int) -> dict:
         with self.lock:
             G = self.graphs.setdefault(floor, nx.Graph())
 
@@ -35,6 +35,8 @@ class GraphManager:
         cur = conn.cursor()
         try:
             delta_px = 10
+            print(f"Original click coordinates: x_px={x_px}, y_px={y_px}")
+            
             x1_px = x_px - delta_px
             x2_px = x_px + delta_px
             y1_px = y_px - delta_px
@@ -49,7 +51,9 @@ class GraphManager:
             z1 = int(z_min * 100)
             z2 = int(z_max * 100)
             cap = NODE_TYPES[node_type].get("capacity", SCALE_CONFIG["default_node_capacity_per_sqm"])
-
+            
+            print(f"Received: x_px={x_px}, y_px={y_px}, image_height_px={image_height_px}")
+            
             cur.execute("""
                 INSERT INTO nodes (x1, x2, y1, y2, z1, z2, floor_level, capacity, node_type)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -87,7 +91,7 @@ class GraphManager:
             if G.has_edge(node1, node2):
                 return  # arco già presente
 
-            G.add_edge(node1, node2)
+            G.add_edge(node1, node2, active=True)
             self._persist_edge(node1, node2, floor)
 
     def _persist_edge(self, node1: int, node2: int, floor: int):
@@ -149,23 +153,6 @@ class GraphManager:
             cur.close()
             conn.close()
 
-    # def load_graph(self, floor_level, nodes, arcs):
-    #     with self.lock:
-    #         G = nx.Graph()
-    #         for node in nodes:
-    #             node_id = node.get("id") or node.get("node_id")
-    #             if node_id is None:
-    #                 continue
-    #             G.add_node(node_id, **node)
-    #         for arc in arcs:
-    #             from_node = arc.get("initial_node") 
-    #             to_node = arc.get("final_node")
-    #             if from_node is None or to_node is None:
-    #                 continue
-    #             G.add_edge(from_node, to_node, **arc)
-    #         self.graphs[floor_level] = G
-    #         print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
-
     def load_graph(self, floor_level, nodes, arcs):
         with self.lock:
             G = nx.Graph()
@@ -173,13 +160,25 @@ class GraphManager:
                 node_id = node.get("id") or node.get("node_id")
                 if node_id is None:
                     continue
-                G.add_node(node_id, **node)
+                # px_x = int(self.height_mapper.model_units_to_pixels(node["x"]))
+                # px_y = int(self.height_mapper.model_units_to_pixels(node["y"]))
+                px_x = int(node["x"])  
+                px_y = int(node["y"])
+
+                G.add_node(
+                    node_id, 
+                    x=px_x,
+                    y=px_y,
+                    floor_level=floor_level,
+                    node_type=node.get("node_type"),
+                    current_occupancy=node.get("current_occupancy", 0),
+                    capacity=node.get("capacity", 0))
             for arc in arcs:
                 from_node = arc.get("initial_node")
                 to_node = arc.get("final_node")
                 if from_node is None or to_node is None:
                     continue
-                G.add_edge(from_node, to_node, **arc)
+                G.add_edge(from_node, to_node, active=arc.get("active", True))
             self.graphs[floor_level] = G
             print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
 
