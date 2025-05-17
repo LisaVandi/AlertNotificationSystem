@@ -160,8 +160,6 @@ class GraphManager:
                 node_id = node.get("id") or node.get("node_id")
                 if node_id is None:
                     continue
-                # px_x = int(self.height_mapper.model_units_to_pixels(node["x"]))
-                # px_y = int(self.height_mapper.model_units_to_pixels(node["y"]))
                 px_x = int(node["x"])  
                 px_y = int(node["y"])
 

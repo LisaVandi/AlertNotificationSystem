@@ -37,9 +37,9 @@ def preload_graphs():
         cur.execute("SELECT DISTINCT floor_level FROM nodes")
         floors = [row[0] for row in cur.fetchall()]
 
-        if not floors:
-            print("Nessun piano trovato nel DB. Grafo in memoria vuoto.")
-            return
+        # if not floors:
+        #     print("Nessun piano trovato nel DB. Grafo in memoria vuoto.")
+        #     return
 
         for floor in floors:
             cur.execute("""
@@ -124,9 +124,10 @@ def get_graph(floor: int):
     headers = {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
     }
-    conn = psycopg2.connect(**DATABASE_CONFIG)
-    cur = conn.cursor()
     try:
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        cur = conn.cursor()
+        
         cur.execute("""
             SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
             FROM nodes WHERE floor_level = %s
@@ -141,16 +142,26 @@ def get_graph(floor: int):
         """, (floor, floor))
         arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
 
+         # if not G:
+        #     return JSONResponse({"nodes": [], "arcs": []}, headers=headers)
+        #  aggiunto
+        # if G is None:
+        #     with graph_manager.lock:
+        #         graph_manager.graphs[floor] = nx.Graph()
+        #     G = graph_manager.graphs[floor]    
+        
+          
         with graph_manager.lock:
-            if not nodes and not arcs:
-                graph_manager.graphs[floor] = nx.Graph()  
-            else:
+            # Inizializza sempre il grafo anche se vuoto
+            if floor not in graph_manager.graphs:
+                graph_manager.graphs[floor] = nx.Graph()
+            if nodes or arcs:
                 graph_manager.load_graph(floor, nodes, arcs)
 
-        G = graph_manager.get_graph(floor)
+        G = graph_manager.graphs[floor]    
         if not G:
-            return JSONResponse({"nodes": [], "arcs": []}, headers=headers)
-
+            return JSONResponse({"nodes": [], "arcs": []}, headers=headers)    
+        
         nodes = [{"id": n, **d} for n, d in G.nodes(data=True)]
         edges = [{"from": u, "to": v, **d} for u, v, d in G.edges(data=True)]
 
@@ -168,14 +179,14 @@ def get_node_types():
     ]
     return JSONResponse(content={"node_types": types_list})
 
-@app.get("/")
-async def get_index():
-    index_path = os.path.join(PUBLIC_FOLDER, "index.html")
-    return FileResponse(index_path)
-
 @app.post("/api/reload-graph")
 def reload_graph():
     with graph_manager.lock:
         graph_manager.graphs.clear()  
-    preload_graphs()  #
+    preload_graphs()  
     return {"message": "Graph reloaded from database"}
+
+@app.get("/")
+async def get_index():
+    index_path = os.path.join(PUBLIC_FOLDER, "index.html")
+    return FileResponse(index_path)
