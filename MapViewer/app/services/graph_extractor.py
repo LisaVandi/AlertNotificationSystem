@@ -15,12 +15,18 @@ def insert_graph_into_db(nodes, arcs, floor_level):
     try:
         # Insert nodes into database
         for node in nodes:
+            x1_px = node.get("x1")
+            x2_px = node.get("x2")
+            y1_px = node.get("y1")
+            y2_px = node.get("y2")
+            print(f"Original node coords px: x1={x1_px}, x2={x2_px}, y1={y1_px}, y2={y2_px}")
+
             cur.execute("""
                 INSERT INTO nodes (x1, x2, y1, y2, z1, z2, floor_level, capacity, node_type, current_occupancy)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING node_id
             """, (
-                node.get("x1"), node.get("x2"),
-                node.get("y1"), node.get("y2"),
+                x1_px, x2_px,
+                y1_px, y2_px,
                 int(height_mapper.get_floor_z_range(floor_level)[0] * 100),
                 int(height_mapper.get_floor_z_range(floor_level)[1] * 100),
                 floor_level,
@@ -38,25 +44,22 @@ def insert_graph_into_db(nodes, arcs, floor_level):
             node_start = nodes[initial_index]
             node_end = nodes[final_index]
 
-            # Calcola coordinate centro nodi in cm 
+            # Calcola coordinate centro nodi in px 
             x1 = (node_start["x1"] + node_start["x2"]) // 2
             x2 = (node_end["x1"] + node_end["x2"]) // 2
             y1 = (node_start["y1"] + node_start["y2"]) // 2
             y2 = (node_end["y1"] + node_end["y2"]) // 2
-            
-            x1_px = int(height_mapper.model_units_to_pixels(x1))
-            y1_px = int(height_mapper.model_units_to_pixels(y1))
-            x2_px = int(height_mapper.model_units_to_pixels(x2))
-            y2_px = int(height_mapper.model_units_to_pixels(y2))
 
             # Z coordinate da altezza piano
             z1 = int(height_mapper.get_floor_z_range(floor_level)[0] * 100)
             z2 = int(height_mapper.get_floor_z_range(floor_level)[1] * 100)
 
             # Calcola distanza e capacità in modo coerente
-            dx = (x2_px - x1_px) / 100.0  # cm -> m
-            dy = (y2_px - y1_px) / 100.0
-            dist_m = (dx**2 + dy**2) ** 0.5
+            dx_px = x2 - x1
+            dy_px = y2 - y1
+            dist_px = (dx_px ** 2 + dy_px ** 2) ** 0.5
+            dist_m = height_mapper.pixels_to_model_units(dist_px)  # convert pixels to meters
+
 
             passage_width_m = 1.0
             capacity = max(
@@ -79,7 +82,8 @@ def insert_graph_into_db(nodes, arcs, floor_level):
                 arc.get("flow", 0),
                 f"00:00:{traversal_seconds:02d}",
                 arc.get("active", True),
-                x1_px, x2_px, y1_px, y2_px, z1, z2,
+                x1, x2, y1, y2,
+                z1, z2,
                 capacity,
                 node_ids[initial_index],
                 node_ids[final_index]

@@ -36,33 +36,31 @@ class GraphManager:
         try:
             delta_px = 10
             print(f"Original click coordinates: x_px={x_px}, y_px={y_px}")
-            
+
+            # Calcola bounding box in pixel attorno al punto cliccato
             x1_px = x_px - delta_px
             x2_px = x_px + delta_px
             y1_px = y_px - delta_px
             y2_px = y_px + delta_px
 
-            x1 = int(self.height_mapper.pixels_to_model_units(x1_px) * 100)
-            x2 = int(self.height_mapper.pixels_to_model_units(x2_px) * 100)
-            y1 = int(self.height_mapper.pixels_to_model_units(y1_px) * 100)
-            y2 = int(self.height_mapper.pixels_to_model_units(y2_px) * 100)
-
             z_min, z_max = self.height_mapper.get_floor_z_range(floor)
             z1 = int(z_min * 100)
             z2 = int(z_max * 100)
+
             cap = NODE_TYPES[node_type].get("capacity", SCALE_CONFIG["default_node_capacity_per_sqm"])
-            
+
             print(f"Received: x_px={x_px}, y_px={y_px}, image_height_px={image_height_px}")
-            
+
             cur.execute("""
                 INSERT INTO nodes (x1, x2, y1, y2, z1, z2, floor_level, capacity, node_type)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING node_id
-            """, (x1, x2, y1, y2, z1, z2, floor, cap, node_type))
+            """, (x1_px, x2_px, y1_px, y2_px, z1, z2, floor, cap, node_type))
             node_id = cur.fetchone()[0]
             conn.commit()
 
             with self.lock:
+                # Mantieni le coordinate in pixel per disegno frontend
                 G.add_node(node_id, x=x_px, y=y_px, floor_level=floor, node_type=node_type,
                            current_occupancy=0, capacity=cap)
 
@@ -111,24 +109,19 @@ class GraphManager:
             dy_px = y2_px - y1_px
             distance_px = (dx_px ** 2 + dy_px ** 2) ** 0.5
             distance_m = self.height_mapper.pixels_to_model_units(distance_px)
-            
-            x1_cm = int(self.height_mapper.pixels_to_model_units(x1_px) * 100)
-            x2_cm = int(self.height_mapper.pixels_to_model_units(x2_px) * 100)
-            y1_cm = int(self.height_mapper.pixels_to_model_units(y1_px) * 100)
-            y2_cm = int(self.height_mapper.pixels_to_model_units(y2_px) * 100)
-            
+
             z_min, z_max = self.height_mapper.get_floor_z_range(floor)
             z1 = int(z_min * 100)
             z2 = int(z_max * 100)
-                        
-            passage_width_m = 1.0  
+
+            passage_width_m = 1.0
 
             capacity = max(
                 1,
                 int(distance_m * passage_width_m * SCALE_CONFIG["default_node_capacity_per_sqm"])
             )
 
-            traversal_seconds = max(1, int(distance_m / 1.5))  
+            traversal_seconds = max(1, int(distance_m / 1.5))
 
             cur.execute("""
                 INSERT INTO arcs (
@@ -142,7 +135,7 @@ class GraphManager:
                 RETURNING arc_id
             """, (
                 0, f"00:00:{traversal_seconds:02d}", True,
-                x1_cm, x2_cm, y1_cm, y2_cm, z1, z2,
+                x1_px, x2_px, y1_px, y2_px, z1, z2,
                 capacity, node1, node2
             ))
 
@@ -160,17 +153,19 @@ class GraphManager:
                 node_id = node.get("id") or node.get("node_id")
                 if node_id is None:
                     continue
+
                 px_x = int(node["x"])  
                 px_y = int(node["y"])
-
+                
                 G.add_node(
-                    node_id, 
+                    node_id,
                     x=px_x,
                     y=px_y,
                     floor_level=floor_level,
                     node_type=node.get("node_type"),
                     current_occupancy=node.get("current_occupancy", 0),
-                    capacity=node.get("capacity", 0))
+                    capacity=node.get("capacity", 0)
+                )
             for arc in arcs:
                 from_node = arc.get("initial_node")
                 to_node = arc.get("final_node")

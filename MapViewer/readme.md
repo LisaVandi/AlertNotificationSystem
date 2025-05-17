@@ -46,3 +46,10 @@ Click su due nodi → POST a /api/edges → graph_manager.add_edge → arco dise
 Aggiornamento grafo:
 Click su "Aggiorna grafo" → GET a /api/in-memory-graph → loadGraph ridisegna tutto.
 
+Quando aggiungi un nodo (es. click dal frontend) passi le coordinate pixel, che vengono convertite in cm per il DB.
+
+Quando carichi il grafo dal DB, i dati in cm vengono riconvertiti in pixel per il disegno sulla mappa.
+
+Lo stesso vale per gli archi.
+
+In memoria (networkx), mantieni sempre le coordinate in pixel per semplicità di disegno.
