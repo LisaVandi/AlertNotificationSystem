@@ -1,17 +1,18 @@
+/* -------------------------------------------------------------
+ *  map.js completo – usa /api/map con proprietà coerenti
+ * ----------------------------------------------------------- */
+
 let activeFloor = null;
 const mapsContainer = document.getElementById("maps");
-let maps = []; // {floor, map, markersLayer, arcsLayer, imageHeight}
+let maps = []; // { floor, map, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight }
 const nodeTypeSelector = document.getElementById("node-type-selector");
 const nodeTypeSelect = document.getElementById("node-type");
 let currentClickCoords = null;
 let isAddingEdge = false;
 let selectedNodesForEdge = [];
 
+// Inizializza tipi nodo
 function initNodeTypes(types) {
-  if (!nodeTypeSelect) {
-    console.error("Impossibile inizializzare tipi nodo: nodeTypeSelect non trovato");
-    return;
-  }
   nodeTypeSelect.innerHTML = "";
   types.forEach(t => {
     const opt = document.createElement("option");
@@ -21,21 +22,15 @@ function initNodeTypes(types) {
   });
 }
 
-/* ---------- conversione pixel immagine -> latlng Leaflet ---------- */
+// Conversione pixel immagine → lat/lng Leaflet
 function imgPxToLatLng(x, y) {
   const mapObj = maps.find(m => m.floor === activeFloor);
   if (!mapObj) return L.latLng(y, x);
-  const latlng = L.latLng(mapObj.imageHeight - y, x);
-  console.log(`Converting pixel (x=${x}, y=${y}) to latlng (lat=${latlng.lat}, lng=${latlng.lng}) for imageHeight=${mapObj.imageHeight}`);
-  return latlng;
+  return L.latLng(mapObj.imageHeight - y, x);
 }
 
-/* ---------- node-type selector ---------- */
+// Mostra/nasconde il selettore di tipo nodo
 function showNodeTypeSelector(clientX, clientY) {
-  if (!nodeTypeSelector) {
-    console.error("Impossibile mostrare selettore: nodeTypeSelector non trovato");
-    return;
-  }
   const margin = 10;
   const selectorWidth = nodeTypeSelector.offsetWidth || 150;
   const selectorHeight = nodeTypeSelector.offsetHeight || 50;
@@ -43,25 +38,19 @@ function showNodeTypeSelector(clientX, clientY) {
   const winHeight = window.innerHeight;
   let left = clientX;
   let top = clientY;
-
   if (left + selectorWidth + margin > winWidth) left = winWidth - selectorWidth - margin;
   if (top + selectorHeight + margin > winHeight) top = winHeight - selectorHeight - margin;
-
   nodeTypeSelector.style.display = "block";
   nodeTypeSelector.style.top = `${top}px`;
   nodeTypeSelector.style.left = `${left}px`;
 }
 
 function hideNodeTypeSelector() {
-  if (!nodeTypeSelector) {
-    console.error("Impossibile nascondere selettore: nodeTypeSelector non trovato");
-    return;
-  }
   nodeTypeSelector.style.display = "none";
   currentClickCoords = null;
 }
 
-/* ---------- colori & marker ---------- */
+// Colori e marker
 function getColorByOccupancy(occ, capacity) {
   if (capacity === 0) return "#BDBDBD";
   const ratio = occ / capacity;
@@ -84,15 +73,11 @@ function createNodeMarker(node, latlng, mapObj) {
     color: "#000000",
     weight: 2,
     fillOpacity: 0.85,
-  }).bindTooltip(
-    `Node ${node.node_id || node.id} (${node.node_type})\nOccupancy: ${occ}`
-  );
+  }).bindTooltip(`Node ${node.node_id || node.id} (${node.node_type})\nOccupancy: ${occ}`);
 
   marker.on("click", () => {
     if (!isAddingEdge) return;
-
     selectedNodesForEdge.push({ id: node.node_id || node.id, latlng });
-
     if (selectedNodesForEdge.length === 2) {
       const [fromNode, toNode] = selectedNodesForEdge;
       if (fromNode.id === toNode.id) {
@@ -100,7 +85,6 @@ function createNodeMarker(node, latlng, mapObj) {
         selectedNodesForEdge = [];
         return;
       }
-
       fetch("/api/edges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,14 +95,12 @@ function createNodeMarker(node, latlng, mapObj) {
         }),
       })
         .then(resp => {
-          if (!resp.ok) throw new Error(`Errore creazione arco: ${resp.status} ${resp.statusText}`);
-
+          if (!resp.ok) throw new Error(`Errore creazione arco: ${resp.status}`);
           L.polyline([fromNode.latlng, toNode.latlng], {
             color: "#2196F3",
             weight: 5,
             dashArray: "5,10",
           }).addTo(mapObj.arcsLayer);
-
           alert("Arco creato con successo");
         })
         .catch(err => {
@@ -128,8 +110,7 @@ function createNodeMarker(node, latlng, mapObj) {
         .finally(() => {
           selectedNodesForEdge = [];
           isAddingEdge = false;
-          const btnAddEdge = document.getElementById("btnAddEdge");
-          if (btnAddEdge) btnAddEdge.textContent = "Aggiungi arco";
+          document.getElementById("btnAddEdge").textContent = "Aggiungi arco";
         });
     }
   });
@@ -137,41 +118,28 @@ function createNodeMarker(node, latlng, mapObj) {
   return marker;
 }
 
-/* ---------- click mappa: aggiunta nodo ---------- */
+// Click per aggiungere nodo
 function addClickListener(mapObj) {
   mapObj.map.on("click", e => {
     if (isAddingEdge) return;
-
     const { x, y } = e.containerPoint;
     currentClickCoords = { x_px: Math.round(x), y_px: Math.round(y) };
     activeFloor = mapObj.floor;
-
-    console.log(`Click at x_px=${x}, y_px=${y}, floor=${activeFloor}, containerWidth=${mapObj.map.getContainer().clientWidth}, containerHeight=${mapObj.map.getContainer().clientHeight}`);
-
     showNodeTypeSelector(e.originalEvent.clientX, e.originalEvent.clientY);
   });
 }
 
-/* ---------- POST nodo & disegno immediato ---------- */
+// POST nuovo nodo
 async function updateNodeType() {
   if (!currentClickCoords) return;
-
   const selectedType = nodeTypeSelect.value;
   if (!selectedType) {
     alert("Seleziona un tipo di nodo");
     return;
   }
-
   const mapObj = maps.find(m => m.floor === activeFloor);
-  if (!mapObj) {
-    console.error(`Mappa non trovata per il piano ${activeFloor}`);
-    return;
-  }
-
+  if (!mapObj) return;
   const { x_px, y_px } = currentClickCoords;
-
-  console.log(`Sending node creation request: x_px=${x_px}, y_px=${y_px}, floor=${activeFloor}, node_type=${selectedType}, image_height=${mapObj.imageHeight}`);
-
   try {
     const resp = await fetch("/api/nodes", {
       method: "POST",
@@ -184,22 +152,11 @@ async function updateNodeType() {
         image_height: mapObj.imageHeight
       }),
     });
-
-    if (!resp.ok) {
-      console.error(`Errore creazione nodo: ${resp.status} ${resp.statusText}`);
-      alert("Errore nella creazione nodo");
-      return;
-    }
-
+    if (!resp.ok) throw new Error(`Errore creazione nodo: ${resp.status}`);
     const data = await resp.json();
     const node = data.node;
-
-    console.log(`Received node: id=${node.node_id}, x=${node.x}, y=${node.y}`);
-
     const latlng = imgPxToLatLng(node.x, node.y);
-    const marker = createNodeMarker(node, latlng, mapObj);
-    mapObj.markersLayer.addLayer(marker);
-
+    mapObj.markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     hideNodeTypeSelector();
   } catch (e) {
     console.error("Errore nella creazione nodo:", e);
@@ -207,94 +164,30 @@ async function updateNodeType() {
   }
 }
 
-// /* ---------- carica/disegna grafo ---------- */
-// async function loadGraph(mapObj) {
-//   const { floor, markersLayer, arcsLayer } = mapObj;
-
-//   try {
-//     console.log(`Caricamento grafo per piano ${floor}`);
-
-//     const resp = await fetch(
-//       `/api/map?floor=${floor}` + `&image_filename=${imgName}` +
-//       `&image_width=${imageWidth}` +
-//       `&image_height=${imageHeight}`
-//       , {
-//         method: "GET",
-//         headers: { "Content-Type": "application/json" },
-//         credentials: "same-origin"
-//    }
-//  );
-//     if (!resp.ok) {
-//       console.error(`Errore caricamento grafo per piano ${floor}: ${resp.status} ${resp.statusText}`);
-//       markersLayer.clearLayers();
-//       arcsLayer.clearLayers();
-//       return;
-//     }
-
-//     const data = await resp.json();
-//     console.log(`Grafo caricato per piano ${floor}: ${data.nodes.length} nodi, ${data.arcs.length} archi`);
-
-//     markersLayer.clearLayers();
-//     arcsLayer.clearLayers();
-
-//     /* nodi */
-//     data.nodes.forEach(node => {
-//       console.log(`Drawing node ${node.id} at x=${node.x}, y=${node.y}`);
-//       const latlng = imgPxToLatLng(node.x, node.y);
-//       const marker = createNodeMarker(node, latlng, mapObj);
-//       markersLayer.addLayer(marker);
-//     });
-
-//     /* archi */
-//     data.arcs.forEach(arc => {
-//       if (arc.active === false) return;
-//       const fromNode = data.nodes.find(n => n.id === arc.from);
-//       const toNode = data.nodes.find(n => n.id === arc.to);
-//       if (!fromNode || !toNode) return;
-
-//       const fromLatLng = imgPxToLatLng(fromNode.x, fromNode.y);
-//       const toLatLng = imgPxToLatLng(toNode.x, toNode.y);
-
-//       L.polyline([fromLatLng, toLatLng], {
-//         color: "#333333",
-//         weight: 3,
-//         opacity: 0.8,
-//       }).addTo(arcsLayer);
-//     });
-//   } catch (e) {
-//     console.error(`Errore caricamento grafo per piano ${floor}:`, e);
-//     markersLayer.clearLayers();
-//     arcsLayer.clearLayers();
-//   }
-// }
-
+// Carica e disegna grafo usando /api/map
 async function loadGraph(mapObj) {
-  const { floor, markersLayer, arcsLayer, imageWidth, imageHeight, imgName } = mapObj;
+  const { floor, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight } = mapObj;
   try {
     const url = `/api/map`
       + `?floor=${floor}`
-      + `&image_filename=${encodeURIComponent(imgName)}`
+      + `&image_filename=${encodeURIComponent(imageFilename)}`
       + `&image_width=${imageWidth}`
       + `&image_height=${imageHeight}`;
-
     const resp = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin"
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
     const data = await resp.json();
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
-
     // Disegna nodi
     data.nodes.forEach(node => {
       const latlng = imgPxToLatLng(node.x, node.y);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
-
-    // Disegna archi con le coordinate originali
+    // Disegna archi con coordinate originali
     data.arcs.forEach(arc => {
       if (arc.active === false) return;
       const from = imgPxToLatLng(arc.x1, arc.y1);
@@ -305,7 +198,6 @@ async function loadGraph(mapObj) {
         opacity: 0.8,
       }).addTo(arcsLayer);
     });
-
   } catch (e) {
     console.error(`Errore caricamento grafo piano ${floor}:`, e);
     markersLayer.clearLayers();
@@ -313,199 +205,99 @@ async function loadGraph(mapObj) {
   }
 }
 
-/* ---------- toggle modalità arco ---------- */
+// Toggle modalità aggiunta arco
 function toggleAddEdgeMode() {
   isAddingEdge = !isAddingEdge;
   selectedNodesForEdge = [];
-  const btnAddEdge = document.getElementById("btnAddEdge");
-  if (btnAddEdge) {
-    btnAddEdge.textContent = isAddingEdge ? "Annulla aggiunta arco" : "Aggiungi arco";
-  } else {
-    console.error("Elemento 'btnAddEdge' non trovato nel DOM");
-  }
-  alert(
-    isAddingEdge
-      ? "Modalità aggiunta arco attivata. Seleziona due nodi."
-      : "Modalità aggiunta arco disattivata."
-  );
+  const btn = document.getElementById("btnAddEdge");
+  btn.textContent = isAddingEdge ? "Annulla aggiunta arco" : "Aggiungi arco";
+  alert(isAddingEdge ? "Modalità aggiunta arco attivata. Seleziona due nodi." : "Modalità aggiunta arco disattivata.");
 }
 
+// INIT principale
 async function init() {
   console.log("init() start");
-
-  let images;
-  try {
-    const imgResp = await fetch("/api/images");
-    if (!imgResp.ok) {
-      console.error(`Errore caricamento immagini: ${imgResp.status} ${imgResp.statusText}`);
-      alert("Impossibile caricare immagini");
-      return;
-    }
-    images = (await imgResp.json()).images;
-    console.log(`Immagini caricate: ${images.join(", ")}`);
-  } catch (e) {
-    console.error("Errore caricamento immagini:", e);
-    alert("Impossibile caricare immagini: " + e.message);
-    return;
-  }
-
-  // Tipi nodo
-  try {
-    const ntResp = await fetch("/api/node-types");
-    if (!ntResp.ok) {
-      console.error(`Errore caricamento tipi nodi: ${ntResp.status} ${ntResp.statusText}`);
-      alert("Impossibile caricare tipi nodi");
-      return;
-    }
-    const nodeTypesData = await ntResp.json();
-    initNodeTypes(nodeTypesData.node_types);
-  } catch (e) {
-    console.error("Errore caricamento tipi nodi:", e);
-    alert("Impossibile caricare tipi nodi: " + e.message);
-    return;
-  }
-
+  // Carica immagini
+  const images = (await fetch("/api/images").then(r => r.json())).images;
+  console.log(`Immagini caricate: ${images.join(", ")}`);
+  // Carica tipi nodo
+  const nodeTypesData = (await fetch("/api/node-types").then(r => r.json()));
+  initNodeTypes(nodeTypesData.node_types);
   mapsContainer.innerHTML = "";
-
-  // Carica planimetrie in ordine
-  for (const imgName of images) {
-    const match = imgName.match(/floor(\d+)\.(jpg|jpeg|png)/i);
-    if (!match) {
-      console.warn(`Nome immagine non valido: ${imgName}`);
-      continue;
-    }
-    const floor = parseInt(match[1], 10);
-
-    // Pre-carico immagine per dimensioni reali
+  for (const imageFilename of images) {
+    const m = imageFilename.match(/floor(\d+)\.(jpg|jpeg|png)/i);
+    if (!m) continue;
+    const floor = parseInt(m[1], 10);
     const img = new Image();
-    img.src = `/static/img/${imgName}`;
-    await new Promise(res => { img.onload = res; img.onerror = () => {
-      console.error(`Errore caricamento immagine: ${imgName}`);
-      res();
-    }});
-
-    const imageWidth = img.width || 1024;
-    const imageHeight = img.height || 768;
-    console.log(`Image ${imgName}: width=${imageWidth}, height=${imageHeight}`);
-
-    // Contenitore
+    img.src = `/static/img/${imageFilename}`;
+    await new Promise(res => { img.onload = res; img.onerror = res; });
+    const imageWidth  = img.width;
+    const imageHeight = img.height;
+    console.log(`Image ${imageFilename}: width=${imageWidth}, height=${imageHeight}`);
+    // Contenitore dinamico
     const container = document.createElement("div");
     container.className = "map-container";
-    container.style.marginBottom = "40px";
-
     container.innerHTML = `
-      <div class="title">Floor ${floor} — ${imgName}</div>
-      <div id="map-${floor}" style="width: 100%; height: 100%;"></div>
+      <div class="title">Floor ${floor} — ${imageFilename}</div>
+      <div id="map-${floor}" style="width:100%; height:100%;"></div>
     `;
-
     mapsContainer.appendChild(container);
-
-    const containerWidth = container.clientWidth;
-    container.style.height = `${containerWidth * (imageHeight / imageWidth)}px`;
-
-    // Larghezza massima del contenitore
-    container.style.maxWidth = "100%";
-
-    // Leaflet
-    let map;
-    try {
-      map = L.map(`map-${floor}`, {
-        crs: L.CRS.Simple,
-        minZoom: 0,
-        maxZoom: 0,
-        zoomControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        tap: false,
-        touchZoom: false,
-      });
-    } catch (e) {
-      console.error(`Errore inizializzazione mappa per piano ${floor}:`, e);
-      continue;
-    }
-
-    const bounds = L.latLngBounds(
-      L.latLng(0, 0),
-      L.latLng(imageHeight, imageWidth)
-    );
+    // Mantieni proporzioni
+    const w = container.clientWidth;
+    container.style.height = `${w * (imageHeight / imageWidth)}px`;
+    // Inizializza Leaflet
+    const map = L.map(`map-${floor}`, {
+      crs: L.CRS.Simple,
+      minZoom: 0, maxZoom: 0,
+      zoomControl: false, dragging: false,
+      scrollWheelZoom: false, doubleClickZoom: false,
+      boxZoom: false, keyboard: false,
+      tap: false, touchZoom: false,
+    });
+    const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
-    L.imageOverlay(`/static/img/${imgName}`, bounds).addTo(map);
-
+    L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);
     const markersLayer = L.layerGroup().addTo(map);
-    const arcsLayer = L.layerGroup().addTo(map);
-
-    const mapObj = { floor, map, markersLayer, arcsLayer, imageHeight };
+    const arcsLayer    = L.layerGroup().addTo(map);
+    // Memorizza metadata map
+    const mapObj = {
+      floor,
+      map,
+      markersLayer,
+      arcsLayer,
+      imageFilename,
+      imageWidth,
+      imageHeight
+    };
     maps.push(mapObj);
-
     await loadGraph(mapObj);
     addClickListener(mapObj);
-
-    // Aggiorna altezza container al resize finestra
-    window.addEventListener('resize', () => {
-      const w = container.clientWidth;
-      container.style.height = `${w * (imageHeight / imageWidth)}px`;
+    // Ridimensiona al resize
+    window.addEventListener("resize", () => {
+      const w2 = container.clientWidth;
+      container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
       map.invalidateSize();
     });
   }
-
   if (maps.length > 0) {
     activeFloor = maps[0].floor;
     console.log(`Piano attivo impostato: ${activeFloor}`);
-  } else {
-    console.warn("Nessuna mappa caricata");
   }
-
-  // Pulsante "Aggiorna grafo"
-  const btnUpdateGraph = document.getElementById("btnUpdateGraph");
-  if (btnUpdateGraph) {
-    btnUpdateGraph.addEventListener("click", async () => {
+  // Bottoni
+  document.getElementById("btnAddEdge")
+    .addEventListener("click", toggleAddEdgeMode);
+  document.getElementById("btnUpdateGraph")
+    .addEventListener("click", async () => {
+      await fetch("/api/reload-graph", { method: "POST" });
       const mapObj = maps.find(m => m.floor === activeFloor);
-      if (!mapObj) {
-        alert("Nessun piano selezionato");
-        return;
-      }
-
-      try {
-        const reloadResp = await fetch("/api/reload-graph", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!reloadResp.ok) {
-          console.error(`Errore ricaricamento grafo: ${reloadResp.status} ${reloadResp.statusText}`);
-          throw new Error("Errore nel ricaricamento del grafo");
-        }
-
+      if (mapObj) {
         await loadGraph(mapObj);
         alert("Grafo aggiornato con successo");
-      } catch (err) {
-        console.error("Errore aggiornamento grafo:", err);
-        alert("Errore nell'aggiornamento del grafo: " + err.message);
       }
     });
-  } else {
-    console.error("Elemento 'btnUpdateGraph' non trovato nel DOM");
-  }
-
-  // Pulsante "Aggiungi arco"
-  const btnAddEdge = document.getElementById("btnAddEdge");
-  if (btnAddEdge) {
-    btnAddEdge.addEventListener("click", toggleAddEdgeMode);
-  } else {
-    console.error("Elemento 'btnAddEdge' non trovato nel DOM");
-  }
-
-  // Pulsante "Annulla" selettore tipo nodo
-  const btnCancelNodeType = document.getElementById("btnCancelNodeType");
-  if (btnCancelNodeType) {
-    btnCancelNodeType.addEventListener("click", hideNodeTypeSelector);
-  } else {
-    console.error("Elemento 'btnCancelNodeType' non trovato nel DOM");
-  }
+  document.getElementById("btnCancelNodeType")
+    .addEventListener("click", hideNodeTypeSelector);
 }
 
 init().catch(err => console.error("Errore in init():", err));
