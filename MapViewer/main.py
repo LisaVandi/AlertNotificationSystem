@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import networkx as nx
 import re
+from fastapi.middleware.cors import CORSMiddleware
 
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
@@ -14,6 +15,14 @@ from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],            # o metti la tua origine specifica, es. ["http://localhost:8000"]
+    allow_credentials=True,
+    allow_methods=["*"],            # GET, POST, OPTIONS…
+    allow_headers=["*"],            # Content-Type…
+)
 
 IMG_FOLDER = "MapViewer/public/img"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -36,10 +45,6 @@ def preload_graphs():
 
         cur.execute("SELECT DISTINCT floor_level FROM nodes")
         floors = [row[0] for row in cur.fetchall()]
-
-        # if not floors:
-        #     print("Nessun piano trovato nel DB. Grafo in memoria vuoto.")
-        #     return
 
         for floor in floors:
             cur.execute("""

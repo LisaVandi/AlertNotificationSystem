@@ -94,7 +94,7 @@ function createNodeMarker(node, latlng, mapObj) {
           floor: activeFloor,
         }),
       })
-        .then(resp => {
+        .then(async resp => {
           if (!resp.ok) throw new Error(`Errore creazione arco: ${resp.status}`);
           L.polyline([fromNode.latlng, toNode.latlng], {
             color: "#2196F3",
@@ -165,45 +165,101 @@ async function updateNodeType() {
 }
 
 // Carica e disegna grafo usando /api/map
+// async function loadGraph(mapObj) {
+//   const { floor, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight } = mapObj;
+//   try {
+//     const url = `/api/map`
+//       + `?floor=${floor}`
+//       + `&image_filename=${encodeURIComponent(imageFilename)}`
+//       + `&image_width=${imageWidth}`
+//       + `&image_height=${imageHeight}`;
+//     const resp = await fetch(url, {
+//       method: "GET",
+//       headers: { "Content-Type": "application/json" },
+//       credentials: "same-origin"
+//     });
+//     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+//     const data = await resp.json();
+//     markersLayer.clearLayers();
+//     arcsLayer.clearLayers();
+//     // Disegna nodi
+//     data.nodes.forEach(node => {
+//       const latlng = imgPxToLatLng(node.x, node.y);
+//       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
+//     });
+//     // Disegna archi con coordinate originali
+//     data.arcs.forEach(arc => {
+//       if (arc.active === false) return;
+//       const from = imgPxToLatLng(arc.x1, arc.y1);
+//       const to   = imgPxToLatLng(arc.x2, arc.y2);
+//       L.polyline([from, to], {
+//         color: "#333333",
+//         weight: 3,
+//         opacity: 0.8,
+//       }).addTo(arcsLayer);
+//     });
+//   } catch (e) {
+//     console.error(`Errore caricamento grafo piano ${floor}:`, e);
+//     markersLayer.clearLayers();
+//     arcsLayer.clearLayers();
+//   }
+// }
+
+// Carica e disegna grafo usando /api/map
 async function loadGraph(mapObj) {
   const { floor, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight } = mapObj;
+  
   try {
     const url = `/api/map`
       + `?floor=${floor}`
       + `&image_filename=${encodeURIComponent(imageFilename)}`
       + `&image_width=${imageWidth}`
       + `&image_height=${imageHeight}`;
+      
     const resp = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin"
     });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    if (!resp.ok) {
+      console.error(`Errore caricamento grafo piano ${floor}: HTTP ${resp.status}`);
+      return;
+    }
+
     const data = await resp.json();
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
-    // Disegna nodi
+
+    // Disegna i nodi
     data.nodes.forEach(node => {
       const latlng = imgPxToLatLng(node.x, node.y);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
-    // Disegna archi con coordinate originali
+
+    // Disegna gli archi con corretta conversione delle coordinate
     data.arcs.forEach(arc => {
-      if (arc.active === false) return;
+      if (arc.active === false) return;  // Salta gli archi non attivi
+
+      // Converti le coordinate x1, y1, x2, y2 per ogni arco
       const from = imgPxToLatLng(arc.x1, arc.y1);
-      const to   = imgPxToLatLng(arc.x2, arc.y2);
+      const to = imgPxToLatLng(arc.x2, arc.y2);
+      
+      // Disegna arco tra i nodi
       L.polyline([from, to], {
         color: "#333333",
         weight: 3,
         opacity: 0.8,
       }).addTo(arcsLayer);
     });
+    
   } catch (e) {
     console.error(`Errore caricamento grafo piano ${floor}:`, e);
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
   }
 }
+
 
 // Toggle modalità aggiunta arco
 function toggleAddEdgeMode() {

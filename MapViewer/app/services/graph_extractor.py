@@ -30,7 +30,7 @@ def insert_graph_into_db(nodes, arcs, floor_level):
             ))
             node_ids.append(cur.fetchone()[0])
 
-        # Insert arcs into database, calcolando coordinate da nodi associati
+        # Insert arcs into database
         for arc in arcs:
             initial_index = arc["initial_node_index"]
             final_index = arc["final_node_index"]
@@ -38,19 +38,24 @@ def insert_graph_into_db(nodes, arcs, floor_level):
             node_start = nodes[initial_index]
             node_end = nodes[final_index]
 
-            # Calcola coordinate centro nodi in cm (coerenti con graph_manager)
+            # Calcola coordinate centro nodi in cm 
             x1 = (node_start["x1"] + node_start["x2"]) // 2
             x2 = (node_end["x1"] + node_end["x2"]) // 2
             y1 = (node_start["y1"] + node_start["y2"]) // 2
             y2 = (node_end["y1"] + node_end["y2"]) // 2
+            
+            x1_px = int(height_mapper.model_units_to_pixels(x1))
+            y1_px = int(height_mapper.model_units_to_pixels(y1))
+            x2_px = int(height_mapper.model_units_to_pixels(x2))
+            y2_px = int(height_mapper.model_units_to_pixels(y2))
 
             # Z coordinate da altezza piano
             z1 = int(height_mapper.get_floor_z_range(floor_level)[0] * 100)
             z2 = int(height_mapper.get_floor_z_range(floor_level)[1] * 100)
 
             # Calcola distanza e capacità in modo coerente
-            dx = (x2 - x1) / 100.0  # cm -> m
-            dy = (y2 - y1) / 100.0
+            dx = (x2_px - x1_px) / 100.0  # cm -> m
+            dy = (y2_px - y1_px) / 100.0
             dist_m = (dx**2 + dy**2) ** 0.5
 
             passage_width_m = 1.0
@@ -74,7 +79,7 @@ def insert_graph_into_db(nodes, arcs, floor_level):
                 arc.get("flow", 0),
                 f"00:00:{traversal_seconds:02d}",
                 arc.get("active", True),
-                x1, x2, y1, y2, z1, z2,
+                x1_px, x2_px, y1_px, y2_px, z1, z2,
                 capacity,
                 node_ids[initial_index],
                 node_ids[final_index]
