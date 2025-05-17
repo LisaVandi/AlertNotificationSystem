@@ -34,14 +34,12 @@ class GraphManager:
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
         try:
-            delta_px = 10
             print(f"Original click coordinates: x_px={x_px}, y_px={y_px}")
 
-            # Calcola bounding box in pixel attorno al punto cliccato
-            x1_px = x_px - delta_px
-            x2_px = x_px + delta_px
-            y1_px = y_px - delta_px
-            y2_px = y_px + delta_px
+            x1_px = x_px 
+            x2_px = x_px 
+            y1_px = y_px 
+            y2_px = y_px 
 
             z_min, z_max = self.height_mapper.get_floor_z_range(floor)
             z1 = int(z_min * 100)

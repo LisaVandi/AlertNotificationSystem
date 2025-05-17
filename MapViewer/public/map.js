@@ -135,6 +135,7 @@ function addClickListener(mapObj) {
     const latlng = e.latlng;
     const px = latLngToImgPx(latlng.lat, latlng.lng, mapObj.imageHeight);
 
+    console.log("Click pixel coords", px.x, px.y);
     currentClickCoords = { x_px: px.x, y_px: px.y };
     activeFloor = mapObj.floor;
 
@@ -204,7 +205,9 @@ async function loadGraph(mapObj) {
 
     // Disegna i nodi
     data.nodes.forEach(node => {
+      console.log("Node original px coords", node.x, node.y);
       const latlng = imgPxToLatLng(node.x, node.y);
+      console.log("Node leaflet coords", latlng.lat, latlng.lng);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
 
@@ -281,7 +284,8 @@ async function init() {
       boxZoom: false, keyboard: false,
       tap: false, touchZoom: false,
     });
-    const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
+    
+    const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
     L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);
