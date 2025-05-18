@@ -200,6 +200,7 @@ async function loadGraph(mapObj) {
     }
 
     const data = await resp.json();
+
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
 
@@ -285,7 +286,9 @@ async function init() {
       tap: false, touchZoom: false,
     });
     
-    const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
+    // const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
+    const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
+    console.log("Bounds:", bounds.getSouthWest(), bounds.getNorthEast());
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
     L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);

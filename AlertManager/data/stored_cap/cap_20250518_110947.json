@@ -1,0 +1,24 @@
+{
+  "identifier": "CAP-IT-2023-0999",
+  "sender": "comune.villaggio@example.it",
+  "sent": "2023-06-18T15:45:00+02:00",
+  "status": "Actual",
+  "msgType": "Alert",
+  "scope": "Private",
+  "info": [
+    {
+      "category": "Safety",
+      "event": "Gas Leak",
+      "urgency": "Past",
+      "severity": "Low",
+      "certainty": "Possible",
+      "responseType": "Ignore",
+      "areas": [
+        {
+          "areaDesc": "Building D",
+          "circle": "45.130,9.460 0.5"
+        }
+      ]
+    }
+  ]
+}

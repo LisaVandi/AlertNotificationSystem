@@ -12,7 +12,7 @@ processes = {}
 
 # Comandi da eseguire nell’ordine specificato
 startup_sequence = [
-    ("MapViewer websocket", ["python", "-m", "MapViewer.app.websocket_server"]),
+    # ("MapViewer websocket", ["python", "-m", "MapViewer.app.websocket_server"]),
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
     ("NotificationCenter", ["python", "-m", "NotificationCenter.main"]),
     ("MapManager", ["python", "MapManager/main.py"]),

@@ -48,10 +48,25 @@ def preload_graphs():
 
         for floor in floors:
             cur.execute("""
-                SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
+                SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level
                 FROM nodes WHERE floor_level = %s
             """, (floor,))
-            nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
+            nodes_db = cur.fetchall()
+            
+            nodes = []
+            for r in nodes_db:
+                node_id, x1, x2, y1, y2, node_type, occ, cap, floor_level = r
+                x_center = (x1 + x2) / 2
+                y_center = (y1 + y2) / 2
+                nodes.append({
+                    "id": node_id,
+                    "x": x_center,
+                    "y": y_center,
+                    "node_type": node_type,
+                    "current_occupancy": occ,
+                    "capacity": cap,
+                    "floor_level": floor_level
+                })
 
             cur.execute("""
                 SELECT initial_node, final_node, x1, y1, x2, y2, active
@@ -62,7 +77,19 @@ def preload_graphs():
             arc_rows = cur.fetchall()
             print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
 
-            arcs = [{"initial_node": r[0], "final_node": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in arc_rows]
+            # arcs = [{"initial_node": r[0], "final_node": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in arc_rows]
+            arcs = []
+            for r in arc_rows:
+                initial_node, final_node, x1, y1, x2, y2, active = r
+                arcs.append({
+                    "initial_node": initial_node,
+                    "final_node": final_node,
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
+                    "active": active
+                })
 
             graph_manager.load_graph(floor, nodes, arcs)
     finally:
@@ -146,15 +173,6 @@ def get_graph(floor: int):
             AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
         """, (floor, floor))
         arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
-
-         # if not G:
-        #     return JSONResponse({"nodes": [], "arcs": []}, headers=headers)
-        #  aggiunto
-        # if G is None:
-        #     with graph_manager.lock:
-        #         graph_manager.graphs[floor] = nx.Graph()
-        #     G = graph_manager.graphs[floor]    
-        
           
         with graph_manager.lock:
             # Inizializza sempre il grafo anche se vuoto
