@@ -39,6 +39,7 @@ class PositionManagerConsumer:
         self.dispatch_interval = self.config.get('dispatch_interval', 10)  # Time interval in seconds
         self.processed_count = 0
         self.last_dispatch_time = time.time()
+        self.last_event = None
 
         # Establish connection to RabbitMQ
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -94,6 +95,7 @@ class PositionManagerConsumer:
             logger.info(f"Received raw message:\n{json.dumps(json.loads(body), indent=2)}")
             message = json.loads(body)
             event = message.get("event")
+            self.last_event = event
             user_id = message.get("user_id")
             x = message.get("x")
             y = message.get("y")
@@ -163,6 +165,11 @@ class PositionManagerConsumer:
         and evacuation data for users in danger to the evacuation paths queue.
         """
         aggregated_data = self.aggregate_current_positions()
+        aggregated_data["event"] = self.last_event
+        
+        
+        logger.info(f"Aggregated data being sent to map_manager_queue:\n{json.dumps(aggregated_data, indent=2)}")   
+
         self.channel.basic_publish(
             exchange='',
             routing_key='map_manager_queue',
@@ -173,6 +180,10 @@ class PositionManagerConsumer:
 
         # Send evacuation data for users in danger
         evacuation_data = self.get_evacuation_data()
+
+        # Log del messaggio aggregato
+        logger.info(f"Aggregated data being sent to map_manager_queue:\n{json.dumps(evacuation_data, indent=2)}")
+
         if evacuation_data:
             self.channel.basic_publish(
                 exchange='',
