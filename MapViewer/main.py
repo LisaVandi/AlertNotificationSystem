@@ -1,11 +1,10 @@
 import os
-import json
 import psycopg2
+import networkx as nx
+import re
 from fastapi import FastAPI, Body, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-import networkx as nx
-import re
 from fastapi.middleware.cors import CORSMiddleware
 
 from MapViewer.app.services.graph_exporter import get_graph_json
@@ -18,10 +17,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],            # o metti la tua origine specifica, es. ["http://localhost:8000"]
+    allow_origins=["*"],            
     allow_credentials=True,
-    allow_methods=["*"],            # GET, POST, OPTIONS…
-    allow_headers=["*"],            # Content-Type…
+    allow_methods=["*"],            
+    allow_headers=["*"],            
 )
 
 IMG_FOLDER = "MapViewer/public/img"
@@ -77,7 +76,6 @@ def preload_graphs():
             arc_rows = cur.fetchall()
             print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
 
-            # arcs = [{"initial_node": r[0], "final_node": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in arc_rows]
             arcs = []
             for r in arc_rows:
                 initial_node, final_node, x1, y1, x2, y2, active = r
@@ -175,7 +173,6 @@ def get_graph(floor: int):
         arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
           
         with graph_manager.lock:
-            # Inizializza sempre il grafo anche se vuoto
             if floor not in graph_manager.graphs:
                 graph_manager.graphs[floor] = nx.Graph()
             if nodes or arcs:

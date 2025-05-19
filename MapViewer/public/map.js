@@ -1,7 +1,3 @@
-/* -------------------------------------------------------------
- *  map.js completo – usa /api/map con proprietà coerenti
- * ----------------------------------------------------------- */
-
 let activeFloor = null;
 const mapsContainer = document.getElementById("maps");
 let maps = []; // { floor, map, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight }
@@ -206,7 +202,7 @@ async function loadGraph(mapObj) {
 
     // Disegna i nodi
     data.nodes.forEach(node => {
-      console.log("Node original px coords", node.x, node.y);
+      console.log(`Node original px ${node.id} y: ${node.y}, imageHeight: ${mapObj.imageHeight}, calc lat: ${mapObj.imageHeight - node.y}`);
       const latlng = imgPxToLatLng(node.x, node.y);
       console.log("Node leaflet coords", latlng.lat, latlng.lng);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
@@ -288,6 +284,7 @@ async function init() {
     
     // const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
     const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
+    
     console.log("Bounds:", bounds.getSouthWest(), bounds.getNorthEast());
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
