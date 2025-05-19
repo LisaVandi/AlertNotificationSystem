@@ -139,6 +139,30 @@ class DBManager:
         except Exception as e:
             logger.error(f"Failed to get evacuation paths: {e}")
             return []
+        
+    def get_floor_level_by_node(self, node_id):
+        """
+        Retrieves the floor level of a node based on its node_id.
+
+        Args:
+            node_id (int): The ID of the node.
+
+        Returns:
+            int: The floor level of the node, or None if not found.
+        """
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT floor_level
+                    FROM nodes
+                    WHERE node_id = %s;
+                """, (node_id,))
+                result = cursor.fetchone()
+                return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Failed to retrieve floor_level for node {node_id}: {e}")
+            return None
+
 
     def close(self):
         """

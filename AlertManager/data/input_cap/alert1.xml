@@ -6,8 +6,8 @@
   <msgType>Alert</msgType>
   <scope>Public</scope>
   <info>
-    <category>Fire</category>
-    <event>Fire</event>
+    <category>Earthquake</category>
+    <event>Earthquake</event>
     <urgency>Immediate</urgency>
     <severity>Extreme</severity>
     <certainty>Observed</certainty>

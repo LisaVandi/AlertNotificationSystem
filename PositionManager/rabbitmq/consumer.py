@@ -101,7 +101,7 @@ class PositionManagerConsumer:
             node_id = message.get("node_id")
             
             # Calculate the danger level based on the event and position
-            danger = self.calculate_danger(event, x, y, z)
+            danger = self.calculate_danger(event, x, y, z, node_id)
             
             # Upsert current position and insert historical position into the database
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
@@ -118,7 +118,7 @@ class PositionManagerConsumer:
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
 
-    def calculate_danger(self, event, x, y, z):
+    def calculate_danger(self, event, x, y, z, node_id):
         """
         Calculates whether a user is in danger based on the event type and their position.
 
@@ -141,9 +141,12 @@ class PositionManagerConsumer:
             return True  # Evacuate all users for this event
 
         if event_config['type'] == 'floor':
-            # For floor-based events, evacuate users based on their floor level (z)
             danger_floors = event_config.get('danger_floors', [])
-            return z in danger_floors
+            floor_level = self.db_manager.get_floor_level_by_node(node_id)
+            if floor_level is None:
+                logger.warning(f"Could not find floor level for node_id {node_id}")
+                return False
+            return floor_level in danger_floors
 
         if event_config['type'] == 'zone':
             # For zone-based events, evacuate users within a specific area

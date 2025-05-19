@@ -7,3 +7,4 @@ pytest
 pika==1.2.0
 pyyaml>=6.0
 networkx
+Pillow
