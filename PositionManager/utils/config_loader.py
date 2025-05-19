@@ -47,7 +47,7 @@ class ConfigLoader:
             logger.error(f"Failed to load config: {e}")
             return {}
 
-    def is_user_in_danger(self, event, position):
+    def is_user_in_danger(self, event, position, floor_level=None):
         """
         Determines if a user is in danger based on the event type and position.
 
@@ -73,25 +73,7 @@ class ConfigLoader:
         # Evaluate if the user is in danger based on the event rule type
         if rule_type == "all":
             return True  # All users are in danger for this event
-        elif rule_type == "floor":
-            # Define the floor ranges for different floors
-            floor_ranges = {
-                0: range(0, 151),    # Floor 0: Z in range [0, 150]
-                1: range(151, 301),  # Floor 1: Z in range [151, 300]
-                2: range(301, 451),  # Floor 2: Z in range [301, 450]
-            }
-            # Determine the floor the user is on based on their z-coordinate
-            user_floor = None
-            for floor, z_range in floor_ranges.items():
-                if z in z_range:
-                    user_floor = floor
-                    break
-
-            # If user is on a floor, check if that floor is in danger
-            if user_floor is not None:
-                return user_floor in event_rule.get("danger_floors", [])
         elif rule_type == "zone":
-            # Check if the user is within the defined danger zone
             zone = event_rule.get("danger_zone", {})
             in_x = zone.get("x1", -1) <= x <= zone.get("x2", float('inf'))
             in_y = zone.get("y1", -1) <= y <= zone.get("y2", float('inf'))

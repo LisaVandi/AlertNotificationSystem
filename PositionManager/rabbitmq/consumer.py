@@ -39,6 +39,7 @@ class PositionManagerConsumer:
         self.dispatch_interval = self.config.get('dispatch_interval', 10)  # Time interval in seconds
         self.processed_count = 0
         self.last_dispatch_time = time.time()
+        self.last_event = None
 
         # Establish connection to RabbitMQ
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -94,6 +95,7 @@ class PositionManagerConsumer:
             logger.info(f"Received raw message:\n{json.dumps(json.loads(body), indent=2)}")
             message = json.loads(body)
             event = message.get("event")
+            self.last_event = event
             user_id = message.get("user_id")
             x = message.get("x")
             y = message.get("y")
@@ -101,7 +103,7 @@ class PositionManagerConsumer:
             node_id = message.get("node_id")
             
             # Calculate the danger level based on the event and position
-            danger = self.calculate_danger(event, x, y, z)
+            danger = self.calculate_danger(event, x, y, z, node_id)
             
             # Upsert current position and insert historical position into the database
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
@@ -118,7 +120,7 @@ class PositionManagerConsumer:
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
 
-    def calculate_danger(self, event, x, y, z):
+    def calculate_danger(self, event, x, y, z, node_id):
         """
         Calculates whether a user is in danger based on the event type and their position.
 
@@ -141,9 +143,12 @@ class PositionManagerConsumer:
             return True  # Evacuate all users for this event
 
         if event_config['type'] == 'floor':
-            # For floor-based events, evacuate users based on their floor level (z)
             danger_floors = event_config.get('danger_floors', [])
-            return z in danger_floors
+            floor_level = self.db_manager.get_floor_level_by_node(node_id)
+            if floor_level is None:
+                logger.warning(f"Could not find floor level for node_id {node_id}")
+                return False
+            return floor_level in danger_floors
 
         if event_config['type'] == 'zone':
             # For zone-based events, evacuate users within a specific area
@@ -160,6 +165,11 @@ class PositionManagerConsumer:
         and evacuation data for users in danger to the evacuation paths queue.
         """
         aggregated_data = self.aggregate_current_positions()
+        aggregated_data["event"] = self.last_event
+        
+        
+        logger.info(f"Aggregated data being sent to map_manager_queue:\n{json.dumps(aggregated_data, indent=2)}")   
+
         self.channel.basic_publish(
             exchange='',
             routing_key='map_manager_queue',
@@ -170,6 +180,10 @@ class PositionManagerConsumer:
 
         # Send evacuation data for users in danger
         evacuation_data = self.get_evacuation_data()
+
+        # Log del messaggio aggregato
+        logger.info(f"Aggregated data being sent to map_manager_queue:\n{json.dumps(evacuation_data, indent=2)}")
+
         if evacuation_data:
             self.channel.basic_publish(
                 exchange='',
