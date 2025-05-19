@@ -1,4 +1,3 @@
-import logging
 import psycopg2
 
 from MapViewer.app.config.settings import DATABASE_CONFIG

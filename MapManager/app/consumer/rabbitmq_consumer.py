@@ -35,19 +35,19 @@ class EvacuationConsumer:
             if not dangerous_nodes:
                 logger.warning("No dangerous nodes found in message.")
                 return
-
+            
+            event_type = message.get("event", "Evacuation")
             nodes_in_alert = []
 
             for entry in dangerous_nodes:
-                raw_node_id = entry.get("node_id")
-                if not raw_node_id:
+                node_id = entry.get("node_id")
+                if node_id is None:
                     continue
                 try:
-                    # Assumes node ids are like "N12" and strips "N"
-                    numeric_id = int(raw_node_id.lstrip("N"))
+                    numeric_id = int(node_id)
                     nodes_in_alert.append(numeric_id)
                 except ValueError:
-                    logger.warning(f"Invalid node_id format: {raw_node_id}")
+                    logger.warning(f"Invalid node_id format: {node_id}")
                     continue
 
             if not nodes_in_alert:
@@ -60,7 +60,7 @@ class EvacuationConsumer:
                 return
 
             # Call evacuation logic
-            handle_evacuations(floor_level, nodes_in_alert)
+            handle_evacuations(floor_level, nodes_in_alert, event_type)
 
             logger.info("Evacuation handled successfully.")
 

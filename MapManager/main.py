@@ -84,7 +84,7 @@ def main():
 
     # Initialize default evacuation paths for each floor graph
     for floor in graph_manager.graphs.keys():
-        initialize_evacuation_paths(floor)
+        initialize_evacuation_paths(floor, default_event_type="Evacuation")
 
     logger.info("Initialization completed. MapManager ready and listening.")
 
