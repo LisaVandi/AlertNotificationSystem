@@ -1,15 +1,18 @@
 rabbitmq:
-  url: "amqp://guest:guest@localhost:5672/"
-  publish_queue: "position_queue"
-  consume_queue: "user_simulator_queue"
+  url: "amqp://guest:guest@localhost:5672/"  # Connection URI for RabbitMQ (includes protocol, credentials, host, and port)
+  publish_queue: "position_queue"            # Queue where user position messages will be published
+  consume_queue: "user_simulator_queue"      # Queue to listen to for incoming control messages (e.g., "Alert", "Stop")
 
-num_users: 5
+num_users: 5  # Number of users to simulate upon receiving an "Alert" message
 
 time_slots:
-  - name: "morning_class_1"
-    start: "08:30"
-    end: "10:30"
-    distribution:
+  # Each time slot defines a period in the day and a probability distribution
+  # for placing users in different areas of the environment.
+  
+  - name: "morning_class_1"                  # Time slot name (used for readability/logging)
+    start: "08:30"                           # Start time of the time slot
+    end: "10:30"                             # End time of the time slot
+    distribution:                            # Probability distribution across locations
       classroom: 0.6
       corridor: 0.1
       coffee shop: 0.05
@@ -88,11 +91,24 @@ time_slots:
     start: "16:00"
     end: "18:00"
     distribution:
-      classroom: 0.6
-      corridor: 0.15
-      coffee shop: 0.05
-      canteen: 0.05
-      office: 0.1
-      bathroom: 0.03
-      stairs: 0.01
-      outdoor: 0.01
+      classroom: 1     # During this slot, all users are expected to be in classrooms
+      corridor: 0
+      coffee shop: 0
+      canteen: 0
+      office: 0
+      bathroom: 0
+      stairs: 0
+      outdoor: 0
+
+  - name: "afternoon_class_3"
+    start: "18:00"
+    end: "23:00"
+    distribution:
+      classroom: 1     # Extended classroom activity in the evening
+      corridor: 0
+      coffee shop: 0
+      canteen: 0
+      office: 0
+      bathroom: 0
+      stairs: 0
+      outdoor: 0

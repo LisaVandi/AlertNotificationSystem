@@ -1,23 +1,25 @@
 UserSimulator/
-├── __init__.py
-├── config/
+│
+├── db/                      # Database management module
 │   ├── __init__.py
-│   ├── config.yaml              # File YAML con distribuzioni orarie
-│   └── config_loader.py           # Funzione per caricare config
-├── core/
+│   ├── db_connection.py     # Handles database connection logic
+│
+├── config/                  # Configuration module
 │   ├── __init__.py
-│   ├── simulator.py               # Simulazione posizione utenti
-│   └── controller.py              # Logica che riceve comandi e coordina
-├── db/
-│   └── db_connection.py  # Il modulo di connessione al database
-├── messaging/
+│   ├── config.yaml          # YAML file containing service configuration
+│
+├── rabbitmq/                # RabbitMQ communication module
 │   ├── __init__.py
-│   ├── consumer.py                # Consumatore da coda comandi
-│   ├── producer.py                # Produttore verso coda posizione utenti
-│   └── rabbitmq_handler.py        # Wrapper generico per RabbitMQ
-├── utils/
+│   ├── rabbitmq_manager.py  # Manages RabbitMQ connections and message handling
+│
+├── simulation/              # User simulation logic
 │   ├── __init__.py
-│   └── logger.py                  # Setup logging
-├── main.py                            # Entry point
-├── requirements.txt
-└── README.md
+│   ├── user_simulator.py    # Core logic for simulating users and their positions
+│   ├── event_listener.py    # Listens for incoming events and triggers simulations
+│
+├── utils/                   # Utility functions and helpers
+│   ├── __init__.py
+│   ├── logger.py            # Logging setup and custom logger
+│
+├── main.py                  # Entry point that orchestrates service startup and components
+└── requirements.txt         # Python dependencies for the project
