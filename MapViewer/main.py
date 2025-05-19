@@ -1,11 +1,16 @@
+import json
 import os
 import psycopg2
 import networkx as nx
 import re
+import asyncio
+
 from fastapi import FastAPI, Body, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+
+from contextlib import asynccontextmanager
 
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
@@ -13,7 +18,45 @@ from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
 from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 
-app = FastAPI()
+async def clear_positions_on_shutdown():
+    loop = asyncio.get_event_loop()
+
+    def db_cleanup():
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT user_id, x, y, z, node_id, danger FROM user_historical_position")
+            rows = cur.fetchall()
+            data = [
+                {"user_id": r[0], "x": r[1], "y": r[2], "z": r[3], "node_id": r[4], "danger": r[5]}
+                for r in rows
+            ]
+            json_path = "MapViewer/public/json/user_historical_position_backup.json"
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+            cur.execute("DELETE FROM current_position;")
+            cur.execute("DELETE FROM user_historical_position;")
+            conn.commit()
+        except Exception as e:
+            print("Errore durante la pulizia:", e)
+            conn.rollback()
+        finally:
+            cur.close()
+            conn.close()
+
+    await loop.run_in_executor(None, db_cleanup)
+
+# Definisci lifespan handler
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Codice da eseguire all'avvio (opzionale)
+    yield
+    # Codice da eseguire alla terminazione (shutdown)
+    await clear_positions_on_shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
