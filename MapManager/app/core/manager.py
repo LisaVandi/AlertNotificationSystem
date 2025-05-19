@@ -10,10 +10,6 @@ from MapManager.app.services.db_writer import update_node_evacuation_path
 logger = logging.getLogger(__name__)
 
 def handle_evacuations(floor_level: int, nodes_in_alert: List[int]):
-    """
-    Funzione centrale chiamata dal consumer. Coordina il caricamento del grafo,
-    il calcolo dei percorsi e l'aggiornamento del database.
-    """
     try:
         logger.info(f"Inizio calcolo evacuazioni per floor {floor_level}, nodi coinvolti: {nodes_in_alert}")
         
@@ -22,7 +18,6 @@ def handle_evacuations(floor_level: int, nodes_in_alert: List[int]):
             logger.warning(f"Nessun grafo in memoria per il piano {floor_level}")
             return
 
-        # 2. Identifica nodi di uscita
         exit_nodes = [n for n, data in G.nodes(data=True)
                       if data.get("node_type") in PATHFINDING_CONFIG["default_exit_node_types"]]
 
@@ -30,7 +25,6 @@ def handle_evacuations(floor_level: int, nodes_in_alert: List[int]):
             logger.warning(f"Nessun nodo di uscita trovato per piano {floor_level}")
             return
 
-        # 3. Per ogni nodo da evacuare, trova il percorso verso un nodo di uscita
         for source_node in nodes_in_alert:
             if source_node not in G:
                 logger.warning(f"Il nodo {source_node} non esiste nel grafo")

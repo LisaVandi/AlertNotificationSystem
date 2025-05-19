@@ -3,7 +3,7 @@ rabbitmq:
   publish_queue: "position_queue"            # Queue where user position messages will be published
   consume_queue: "user_simulator_queue"      # Queue to listen to for incoming control messages (e.g., "Alert", "Stop")
 
-num_users: 5  # Number of users to simulate upon receiving an "Alert" message
+num_users: 20  # Number of users to simulate upon receiving an "Alert" message
 
 time_slots:
   # Each time slot defines a period in the day and a probability distribution

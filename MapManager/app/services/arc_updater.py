@@ -43,15 +43,12 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
             if currently_active and should_deactivate:
                 logger.info(f"Disattivo arco {arc_id} (rotto={is_broken}, sovraccarico={is_overloaded})")
 
-                # 1. Aggiorna in memoria
                 data["active"] = False
 
-                # 2. Aggiorna nel DB
                 cur.execute("""
                     UPDATE arcs SET active = FALSE WHERE arc_id = %s
                 """, (arc_id,))
 
-                # 3. Log in tabella di stato
                 cur.execute("""
                     INSERT INTO arc_status_log (arc_id, previous_state, new_state, modified_by)
                     VALUES (%s, %s, %s, %s)

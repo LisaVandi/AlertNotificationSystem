@@ -14,10 +14,10 @@ processes = {}
 startup_sequence = [
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
     ("NotificationCenter", ["python", "-m", "NotificationCenter.main"]),
-    ("MapManager", ["python", "MapManager/main.py"]),
     ("AlertManager", ["python", "AlertManager/main.py"]),
     ("UserSimulator", ["python", "UserSimulator/main.py"]),
     ("PositionManager", ["python", "PositionManager/main.py"]),
+    ("MapManager", ["python", "-m", "MapManager.main"]),
 ]
 
 # File da monitorare e segnali da cercare
