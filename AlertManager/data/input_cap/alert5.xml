@@ -25,22 +25,4 @@
     </area>
   </info>
 
-  <!-- Secondo blocco info -->
-  <info>
-    <category>Env</category>
-    <event>Fire</event>
-    <urgency>Expected</urgency>
-    <severity>Extreme</severity>
-    <certainty>Observed</certainty>
-    <language>en-US</language>
-    <responseType>Evacuate</responseType>
-    <description>Major fire reported in Parking Lot area.</description>
-    <instruction>Evacuate the area and follow emergency services instructions.</instruction>
-
-    <area>
-      <areaDesc>Parking Lot</areaDesc>
-      <polygon>45.2,9.2 45.2,9.3 45.3,9.3 45.3,9.2 45.2,9.2</polygon>
-      <altitude>5</altitude>
-    </area>
-  </info>
 </alert>
