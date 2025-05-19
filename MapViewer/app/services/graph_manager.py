@@ -4,6 +4,12 @@ import psycopg2
 from MapViewer.app.config.settings import SCALE_CONFIG, Z_RANGES, NODE_TYPES, DATABASE_CONFIG
 from MapViewer.app.services.height_mapper import HeightMapper
 
+from datetime import timedelta
+
+def time_str_to_seconds(time_str):
+    h, m, s = map(int, time_str.split(':'))
+    return h * 3600 + m * 60 + s
+
 class GraphManager:
     def __init__(self):
         self.graphs = {}
@@ -168,7 +174,11 @@ class GraphManager:
                 to_node = arc.get("final_node")
                 if from_node is None or to_node is None:
                     continue
-                G.add_edge(from_node, to_node, active=arc.get("active", True))
+                
+                traversal_time_str = arc.get("traversal_time", "00:00:01")
+                traversal_time_sec = time_str_to_seconds(traversal_time_str)
+                
+                G.add_edge(from_node, to_node, active=arc.get("active", True), arc_id=arc.get("arc_id"), traversal_time=traversal_time_sec)
             self.graphs[floor_level] = G
             print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
 

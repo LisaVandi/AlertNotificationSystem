@@ -31,7 +31,6 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
             if arc_id is None:
                 continue
 
-            # Verifica stato
             flow = data.get("flow", 0)
             capacity = data.get("capacity", PATHFINDING_CONFIG["max_arc_capacity"])
             is_broken = arc_id in broken_arc_ids
@@ -41,7 +40,7 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
             currently_active = data.get("active", True)
 
             if currently_active and should_deactivate:
-                logger.info(f"Disattivo arco {arc_id} (rotto={is_broken}, sovraccarico={is_overloaded})")
+                logger.info(f"Deactivating arc {arc_id} (broken={is_broken}, overloaded={is_overloaded})")
 
                 data["active"] = False
 
@@ -59,5 +58,5 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
         conn.close()
 
     except Exception as e:
-        logger.error(f"Errore durante l'aggiornamento degli archi: {str(e)}")
+        logger.error(f"Error updating arcs: {str(e)}")
         raise

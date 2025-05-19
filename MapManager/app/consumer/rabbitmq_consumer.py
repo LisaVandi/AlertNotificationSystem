@@ -1,5 +1,6 @@
 """
-EvacuationConsumer - gestore dei messaggi RabbitMQ per il MapManager
+RabbitMQ Consumer for MapManager service
+Handles incoming messages about dangerous nodes and triggers evacuation calculations.
 """
 from typing import Dict, Any
 
@@ -16,23 +17,23 @@ logger = setup_logging("evacuation_consumer", "MapManager/logs/evacuationConsume
 class EvacuationConsumer:
     def __init__(self, rabbitmq_handler: RabbitMQHandler):
         self.rabbitmq = rabbitmq_handler
-        logger.info("Evacuation Consumer initialized")
+        logger.info("EvacuationConsumer initialized")
 
     def start_consuming(self):
-        """Avvia il consumo dalla coda MAP_MANAGER_QUEUE"""
+        """Start consuming messages from the MAP_MANAGER_QUEUE"""
         self.rabbitmq.consume_messages(
             queue_name=MAP_MANAGER_QUEUE,
             callback=self.process_message
         )
-        logger.info(f"Starting evacuation consumer on Map Manager queue")
+        logger.info("Started consuming on MAP_MANAGER_QUEUE")
 
     def process_message(self, message: Dict[str, Any]):
         try:
-            logger.info(f"Messaggio ricevuto: {message}")
+            logger.info(f"Received message: {message}")
             
             dangerous_nodes = message.get("dangerous_nodes", [])
             if not dangerous_nodes:
-                logger.warning("Nessun nodo pericoloso trovato nel messaggio.")
+                logger.warning("No dangerous nodes found in message.")
                 return
 
             nodes_in_alert = []
@@ -42,28 +43,33 @@ class EvacuationConsumer:
                 if not raw_node_id:
                     continue
                 try:
-                    numeric_id = int(raw_node_id.replace("N", ""))
+                    # Assumes node ids are like "N12" and strips "N"
+                    numeric_id = int(raw_node_id.lstrip("N"))
                     nodes_in_alert.append(numeric_id)
                 except ValueError:
-                    logger.warning(f"node_id non valido: {raw_node_id}")
+                    logger.warning(f"Invalid node_id format: {raw_node_id}")
                     continue
 
             if not nodes_in_alert:
-                logger.warning("Nessun node_id valido da processare.")
+                logger.warning("No valid node IDs found to process.")
                 return
 
-            floor_level = self.get_floor_level_from_node(nodes_in_alert[0])
+            floor_level = self.get_floor_level(nodes_in_alert[0])
+            if floor_level is None:
+                logger.warning("Cannot determine floor level from node.")
+                return
 
-            # Richiama la logica di gestione delle evacuazioni
+            # Call evacuation logic
             handle_evacuations(floor_level, nodes_in_alert)
 
-            logger.info("Evacuazione gestita con successo.")
+            logger.info("Evacuation handled successfully.")
 
         except Exception as e:
-            logger.error(f"Errore nella gestione del messaggio: {str(e)}")
+            logger.error(f"Error processing message: {str(e)}")
             raise
-        
-    def get_floor_level_from_node(self, node_id: int) -> int:
+
+    def get_floor_level(self, node_id: int) -> int:
+        """Retrieve floor level from DB for a given node ID"""
         try:
             conn = psycopg2.connect(**DATABASE_CONFIG)
             cur = conn.cursor()
@@ -71,7 +77,7 @@ class EvacuationConsumer:
             result = cur.fetchone()
             cur.close()
             conn.close()
-            return result[0] if result else 0
+            return result[0] if result else None
         except Exception as e:
-            logger.error(f"Errore durante il recupero del floor_level per node_id={node_id}: {str(e)}")
-            return 0
+            logger.error(f"Error retrieving floor_level for node {node_id}: {str(e)}")
+            return None

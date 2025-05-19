@@ -6,7 +6,7 @@ RABBITMQ_CONFIG = {
 }
 
 PATHFINDING_CONFIG = {
-    "default_exit_node_types": ["outdoor", "stairs"],  # nodi target = tipi di nodi considerati punti di evacuazione o "uscite di sicurezza" nel grafo.
-    "max_node_capacity": 50,  # limite oltre cui un nodo è considerato affollato
-    "max_arc_capacity": 30,   # se superato, l'arco può diventare non attivo
+    "default_exit_node_types": ["outdoor"], # Node types considered as evacuation points or exits
+    "max_node_capacity": 50, # Capacity limit above which a node is considered overcrowded
+    "max_arc_capacity": 30 # Capacity limit above which an arc may become inactive  
 }
