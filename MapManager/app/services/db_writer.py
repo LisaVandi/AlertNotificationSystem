@@ -14,9 +14,9 @@ def update_node_evacuation_path(node_id: int, arc_path: list[int]):
         node_id (int): Node identifier to update.
         arc_path (list[int]): Ordered list of arc IDs forming the evacuation path.
     """
-    if not arc_path:
-        arc_path = []
-        logger.warning(f"No evacuation path to save for node {node_id}")
+    # if not arc_path:
+    #     arc_path = []
+    #     logger.warning(f"No evacuation path to save for node {node_id}")
     
     arc_path_clean = [int(a) for a in arc_path if a is not None]
 

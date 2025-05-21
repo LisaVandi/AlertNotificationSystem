@@ -26,7 +26,6 @@ def initialize_evacuation_paths(floor_level: int, default_event_type: str = "Eva
         logger.warning(f"No graph loaded for floor {floor_level}")
         return
 
-    # Prendi i safe_nodes per il default_event_type
     safe_nodes = get_safe_nodes_for_event(G, default_event_type)
     if not safe_nodes:
         logger.warning(f"No safe nodes found for initialization on floor {floor_level} with event {default_event_type}")
@@ -34,11 +33,11 @@ def initialize_evacuation_paths(floor_level: int, default_event_type: str = "Eva
 
     for node_id in G.nodes():
         path = find_shortest_path_to_exit(G, node_id, safe_nodes)
-        if path:
+        if path is None:
+            logger.warning(f"[Init] No path (None) for node {node_id}; skipping")
+        else:
             update_node_evacuation_path(node_id, path)
             logger.info(f"[Init] Saved evacuation path for node {node_id}: {path}")
-        else:
-            logger.warning(f"[Init] No evacuation path found for node {node_id}")
 
 
 def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
@@ -101,10 +100,13 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: Opt
                 logger.warning(f"Alert node {source} not in graph")
                 continue
             path = find_shortest_path_to_exit(G, source, safe_nodes)
-            logger.debug(f"Path for node {source}: {path}")
-            update_node_evacuation_path(source, path or [])
-            logger.info(f"Saved evacuation path for node {source}: {path}")
-
+            if path is None:
+                logger.warning(f"No evacuation path found for node {source}; skipping DB update")
+            else:
+                logger.debug(f"Path for node {source}: {path}")
+                update_node_evacuation_path(source, path)
+                logger.info(f"Saved evacuation path for node {source}: {path}")
+                        
     except Exception as e:
         logger.error(f"Error in handle_evacuations: {e}")
         raise
