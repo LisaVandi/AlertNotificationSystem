@@ -168,11 +168,62 @@ def handle_alert(msg):
 
     logger.info("Alert message processing completed.")
 
+def update_node_occupancy(node_id, delta):
+    """Aggiorna current_occupancy di un nodo incrementando o decrementando di delta, evitando valori negativi"""
+    try:
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        # Recupera l'occupazione corrente
+        cursor.execute("SELECT current_occupancy FROM nodes WHERE node_id = %s", (node_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            logger.warning(f"Node {node_id} not found. Occupancy update skipped.")
+            cursor.close()
+            conn.close()
+            return
+
+        current_occupancy = result[0]
+        new_occupancy = current_occupancy + delta
+
+        # Non permettere valori negativi
+        if new_occupancy < 0:
+            logger.warning(f"Node {node_id} occupancy cannot be negative. Skipping update.")
+        else:
+            cursor.execute("UPDATE nodes SET current_occupancy = %s WHERE node_id = %s", (new_occupancy, node_id))
+            conn.commit()
+            logger.info(f"Node {node_id} occupancy updated from {current_occupancy} to {new_occupancy}")
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        logger.error(f"Error updating occupancy for node {node_id}: {e}")
+
+
+def get_node_occupancy_and_capacity(node_id):
+    """Recupera current_occupancy e capacity di un nodo dal DB"""
+    try:
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT current_occupancy, capacity FROM nodes WHERE node_id = %s", (node_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if result:
+            return result[0], result[1]
+        else:
+            logger.warning(f"Node {node_id} not found in DB.")
+            return None, None
+    except Exception as e:
+        logger.error(f"Error retrieving occupancy and capacity for node {node_id}: {e}")
+        return None, None
 
 def handle_evacuation(msg):
-    """Handles the 'Evacuation' message type"""
+    global current_event
     if not simulation_active:
-        return  # Do nothing if simulation is stopped
+        return
 
     user_id = msg['user_id']
     evacuation_path = msg.get('evacuation_path')
@@ -181,13 +232,12 @@ def handle_evacuation(msg):
         logger.warning(f"Evacuation path for user {user_id} is empty or None.")
         return
 
-    # Retrieve the current position of the user
     current_position = get_current_position(user_id)
     if not current_position:
         logger.warning(f"User {user_id} position not found in the database.")
         return
 
-    x, y, z, node_id = current_position
+    x, y, z, current_node_id = current_position
     channel, _ = get_rabbitmq_channel()
 
     for arc_id in evacuation_path:
@@ -197,15 +247,35 @@ def handle_evacuation(msg):
             continue
 
         final_node_id = arc['final_node']
-        all_nodes = get_nodes_by_type()
 
-        # Search for the final node in the list of nodes
+        current_occupancy, capacity = get_node_occupancy_and_capacity(final_node_id)
+        if current_occupancy is None or capacity is None:
+            logger.warning(f"Skipping node {final_node_id} due to missing occupancy/capacity info.")
+            continue
+
+        if current_occupancy >= capacity:
+            # Nodo pieno, non muovere utente, rimando stessa posizione e esco
+            logger.info(f"Node {final_node_id} full, user {user_id} remains at node {current_node_id}")
+            send_position_to_position_manager(channel, user_id, x, y, z, current_node_id, event=current_event)
+            return
+
+        # Altrimenti sposto l’utente
+        all_nodes = get_nodes_by_type()
         final_node = next((n for n in all_nodes if n['node_id'] == final_node_id), None)
 
         if final_node:
             try:
-                x, y, z = generate_random_position_within_node(final_node)
-                send_position_to_position_manager(channel, user_id, x, y, z, final_node_id, event = current_event)
+                new_x, new_y, new_z = generate_random_position_within_node(final_node)
+                send_position_to_position_manager(channel, user_id, new_x, new_y, new_z, final_node_id, event=current_event)
+
+                # Aggiorno occupazioni nodi: decremento nodo di partenza, incremento nodo di destinazione
+                update_node_occupancy(current_node_id, -1)
+                
+
+                # Aggiorno current_node_id perché l’utente si è spostato
+                current_node_id = final_node_id
+                x, y, z = new_x, new_y, new_z
+
             except Exception as e:
                 logger.error(f"Failed to simulate position for user {user_id} in node {final_node_id}: {e}")
         else:
