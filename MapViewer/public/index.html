@@ -7,18 +7,15 @@
   <style>
     body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
 
-    /* Wrapper che limita larghezza e centra */
     #maps-wrapper {
-      max-width: 1200px;    /* max larghezza desiderata */
-      margin: 0 auto;       /* centra orizzontalmente */
+      max-width: 1200px;    
+      margin: 0 auto;       
       padding: 10px;
       box-sizing: border-box;
     }
 
     .map-wrapper {
       width: 100%;
-      /* Verrà sistemata in JS con aspect-ratio */
-      aspect-ratio: var(--ar-width) / var(--ar-height);
       position: relative;
     }
 
@@ -26,12 +23,10 @@
       width: 100% !important;
       height: 100% !important;
     }
-
-    /* Container mappe: larghezza 100% del wrapper, margine per distanziare */
+    
     .map-container {
       margin-bottom: 40px;
       width: 100%;
-      /* altezza dinamica gestita da JS */
       position: relative;
     }
 
@@ -40,7 +35,6 @@
       padding: 10px;
     }
 
-    /* Non più vw/vh ma 100% per occupare il container */
     .map {
       position: absolute;
       top: 0; left: 0;
@@ -48,7 +42,6 @@
       height: 100%;
     }
 
-    /* Selettore tipo nodo */
     #node-type-selector {
       position: fixed;
       top: 10px;
@@ -61,7 +54,6 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
-    /* Pulsanti fissi */
     #btnAddEdge, #btnUpdateGraph, #btnCancelNodeType {
       position: fixed;
       z-index: 1000;
@@ -90,7 +82,6 @@
   <button id="btnUpdateGraph">Aggiorna grafo</button> 
   <button id="btnCancelNodeType">Annulla</button>
 
-  <!-- Wrapper per limitare larghezza e centrare -->
   <div id="maps-wrapper">
     <div id="maps"></div>
   </div>

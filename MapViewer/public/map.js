@@ -85,7 +85,6 @@ function createNodeMarker(node, latlng, mapObj) {
     if (selectedNodesForEdge.length === 2) {
       const [fromNode, toNode] = selectedNodesForEdge;
       if (fromNode.id === toNode.id) {
-        alert("Seleziona due nodi diversi");
         selectedNodesForEdge = [];
         return;
       }
@@ -105,7 +104,6 @@ function createNodeMarker(node, latlng, mapObj) {
             weight: 5,
             dashArray: "5,10",
           }).addTo(mapObj.arcsLayer);
-          alert("Arco creato con successo");
         })
         .catch(err => {
           alert(err.message);
@@ -141,7 +139,6 @@ async function updateNodeType() {
   if (!currentClickCoords) return;
   const selectedType = nodeTypeSelect.value;
   if (!selectedType) {
-    alert("Seleziona un tipo di nodo");
     return;
   }
   const mapObj = maps.find(m => m.floor === activeFloor);
@@ -230,8 +227,7 @@ function toggleAddEdgeMode() {
   isAddingEdge = !isAddingEdge;
   selectedNodesForEdge = [];
   const btn = document.getElementById("btnAddEdge");
-  btn.textContent = isAddingEdge ? "Annulla aggiunta arco" : "Aggiungi arco";
-  alert(isAddingEdge ? "Modalità aggiunta arco attivata. Seleziona due nodi." : "Modalità aggiunta arco disattivata.");
+  btn.textContent = isAddingEdge ? "Annulla aggiunta arco" : "Aggiungi arco";  
 }
 
 // INIT principale
@@ -274,10 +270,10 @@ async function init() {
     // 2) wrapper interno che mantiene l’aspect-ratio
     const wrapper = document.createElement("div");
     wrapper.className = "map-wrapper";
-    // wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
+    wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
 
-    wrapper.style.setProperty('--ar-width',  imageWidth);
-    wrapper.style.setProperty('--ar-height', imageHeight);
+    // wrapper.style.setProperty('--ar-width',  imageWidth);
+    // wrapper.style.setProperty('--ar-height', imageHeight);
 
     // div che Leaflet trasformerà in mappa
     const mapDiv = document.createElement("div");
@@ -321,11 +317,16 @@ async function init() {
     addClickListener(mapObj);
     // Ridimensiona al resize
     window.addEventListener("resize", () => {
-      // const w2 = container.clientWidth;
-      // container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
-      // map.invalidateSize();
-      maps.forEach(({ map }) => map.invalidateSize());
+      maps.forEach(({ map, imageWidth, imageHeight }) => {
+        const container = document.getElementById(`map-${map.options.crs.code.split(':').pop()}`)?.parentElement;
+        if (container) {
+          const wrapper = container.querySelector(".map-wrapper");
+          wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
+        }
+        map.invalidateSize();
+      });
     });
+
   }
   if (maps.length > 0) {
     activeFloor = maps[0].floor;
@@ -339,7 +340,6 @@ async function init() {
       const mapObj = maps.find(m => m.floor === activeFloor);
       if (mapObj) {
         await loadGraph(mapObj);
-        alert("Grafo aggiornato con successo");
       }
     });
   document.getElementById("btnCancelNodeType")
