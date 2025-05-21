@@ -158,26 +158,30 @@ def create_tables():
         CREATE OR REPLACE FUNCTION update_node_occupancy()
         RETURNS TRIGGER AS $$
         BEGIN
-            -- Reset all current occupancies
-            UPDATE nodes SET current_occupancy = 0;
+            -- Reset solo i nodi interessati
+            UPDATE nodes
+            SET current_occupancy = 0
+            WHERE node_id IN (
+                SELECT DISTINCT node_id
+                FROM current_position
+                WHERE node_id IS NOT NULL
+            );
 
-            -- Count how many users are inside each node and update the occupancy
+            -- Ricalcola occupazione solo per i nodi attivi
             UPDATE nodes
             SET current_occupancy = sub.occupancy
             FROM (
-                SELECT n.node_id AS node_id, COUNT(*) AS occupancy
-                FROM current_position cp
-                JOIN nodes n 
-                    ON cp.x BETWEEN n.x1 AND n.x2 
-                    AND cp.y BETWEEN n.y1 AND n.y2 
-                    AND cp.z BETWEEN n.z1 AND n.z2
-                GROUP BY n.node_id
+                SELECT node_id, COUNT(*) AS occupancy
+                FROM current_position
+                WHERE node_id IS NOT NULL
+                GROUP BY node_id
             ) AS sub
             WHERE nodes.node_id = sub.node_id;
 
             RETURN NULL;
         END;
         $$ LANGUAGE plpgsql;
+
 
     ''')
 
