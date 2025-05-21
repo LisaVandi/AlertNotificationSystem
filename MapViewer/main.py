@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from contextlib import asynccontextmanager
 
+from datetime import datetime
+
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
@@ -31,7 +33,10 @@ async def clear_positions_on_shutdown():
                 {"user_id": r[0], "x": r[1], "y": r[2], "z": r[3], "node_id": r[4], "danger": r[5]}
                 for r in rows
             ]
-            json_path = "MapViewer/public/json/user_historical_position_backup.json"
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            json_path = os.path.join(JSON_OUTPUT_FOLDER, f"user_historical_position_{ts}.json")
+            os.makedirs(os.path.dirname(json_path), exist_ok=True)
+
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
