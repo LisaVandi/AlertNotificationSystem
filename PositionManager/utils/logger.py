@@ -36,7 +36,7 @@ def setup_logger():
         console_handler.setFormatter(formatter)
 
         # Set up file logging: Log to a file with DEBUG level
-        file_handler = logging.FileHandler(os.path.join(log_dir, 'positionManager.log'), mode='a')
+        file_handler = logging.FileHandler(os.path.join(log_dir, 'positionManager.log'), mode='w')
         file_handler.setLevel(logging.DEBUG)  # Log DEBUG and higher level messages in the file
         file_handler.setFormatter(formatter)
 

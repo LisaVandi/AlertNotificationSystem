@@ -234,21 +234,26 @@ class PositionManagerConsumer:
         """
         Retrieves evacuation paths for users in danger based on their node ID.
 
+        This implementation optimizes the query by fetching evacuation paths once per node,
+        and then mapping the users on that node to the corresponding path.
+
         Returns:
             list: A list of dictionaries containing user IDs and their corresponding evacuation paths.
         """
         evacuation_data = []
         try:
             with self.db_manager.conn.cursor() as cursor:
+                # Recupera tutti gli utenti in pericolo raggruppati per nodo
                 cursor.execute("""
-                    SELECT user_id, node_id
+                    SELECT node_id, array_agg(user_id)
                     FROM current_position
-                    WHERE danger = TRUE;
+                    WHERE danger = TRUE
+                    GROUP BY node_id;
                 """)
                 rows = cursor.fetchall()
 
-                for row in rows:
-                    user_id, node_id = row
+                for node_id, user_ids in rows:
+                    # Recupera una sola volta il percorso di evacuazione per nodo
                     cursor.execute("""
                         SELECT evacuation_path
                         FROM nodes
@@ -256,15 +261,19 @@ class PositionManagerConsumer:
                     """, (node_id,))
                     evacuation_path = cursor.fetchone()
                     if evacuation_path:
-                        evacuation_data.append({
-                            "user_id": user_id,
-                            "evacuation_path": evacuation_path[0]
-                        })
+                        path = evacuation_path[0]
+                        # Associa lo stesso percorso a tutti gli utenti di quel nodo
+                        for user_id in user_ids:
+                            evacuation_data.append({
+                                "user_id": user_id,
+                                "evacuation_path": path
+                            })
 
         except Exception as e:
             logger.error(f"Failed to get evacuation data: {e}")
 
         return evacuation_data if evacuation_data else None
+
 
     def start_consuming(self):
         """
