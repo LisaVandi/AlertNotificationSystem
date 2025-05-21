@@ -250,16 +250,44 @@ async function init() {
     const imageWidth  = img.width;
     const imageHeight = img.height;
     
+    // const container = document.createElement("div");
+    // container.className = "map-container";
+    // container.innerHTML = `
+    //   <div class="title">Floor ${floor} — ${imageFilename}</div>
+    //   <div id="map-${floor}" style="width:100%; height:100%;"></div>
+    // `;
+    // mapsContainer.appendChild(container);
+    // // Mantieni proporzioni
+    // const w = container.clientWidth;
+    // container.style.height = `${w * (imageHeight / imageWidth)}px`;
+
+    // 1) wrapper per l'aspect ratio
     const container = document.createElement("div");
     container.className = "map-container";
-    container.innerHTML = `
-      <div class="title">Floor ${floor} — ${imageFilename}</div>
-      <div id="map-${floor}" style="width:100%; height:100%;"></div>
-    `;
+
+    // Titolo
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = `Floor ${floor} — ${imageFilename}`;
+    container.appendChild(title);
+
+    // 2) wrapper interno che mantiene l’aspect-ratio
+    const wrapper = document.createElement("div");
+    wrapper.className = "map-wrapper";
+    // wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
+
+    wrapper.style.setProperty('--ar-width',  imageWidth);
+    wrapper.style.setProperty('--ar-height', imageHeight);
+
+    // div che Leaflet trasformerà in mappa
+    const mapDiv = document.createElement("div");
+    mapDiv.id = `map-${floor}`;
+    mapDiv.className = "map";
+    wrapper.appendChild(mapDiv)
+
+    container.appendChild(wrapper);
     mapsContainer.appendChild(container);
-    // Mantieni proporzioni
-    const w = container.clientWidth;
-    container.style.height = `${w * (imageHeight / imageWidth)}px`;
+
     // Inizializza Leaflet
     const map = L.map(`map-${floor}`, {
       crs: L.CRS.Simple,
@@ -293,9 +321,10 @@ async function init() {
     addClickListener(mapObj);
     // Ridimensiona al resize
     window.addEventListener("resize", () => {
-      const w2 = container.clientWidth;
-      container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
-      map.invalidateSize();
+      // const w2 = container.clientWidth;
+      // container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
+      // map.invalidateSize();
+      maps.forEach(({ map }) => map.invalidateSize());
     });
   }
   if (maps.length > 0) {
