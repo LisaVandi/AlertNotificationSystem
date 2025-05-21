@@ -1,7 +1,3 @@
-"""
-RabbitMQ Consumer for MapManager service
-Handles incoming messages about dangerous nodes and triggers evacuation calculations.
-"""
 from typing import Dict, Any
 
 import psycopg2
@@ -36,7 +32,10 @@ class EvacuationConsumer:
                 logger.warning("No dangerous nodes found in message.")
                 return
             
-            event_type = message.get("event", "Evacuation")
+            event_type = message.get("event")
+            if event_type is None:
+                logger.error("Missing event type in message")
+                return
             nodes_in_alert = []
 
             for entry in dangerous_nodes:
