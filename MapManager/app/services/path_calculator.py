@@ -4,19 +4,6 @@ from MapManager.app.config.logging import setup_logging
 from MapManager.app.config.settings import PATHFINDING_CONFIG
 
 def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[int]) -> Optional[List[int]]:
-    """
-    Finds the shortest path from a start node to one of the exit nodes in graph G,
-    considering only active edges, node capacity constraints, and returns the ordered list of arc IDs.
-
-    Args:
-        G (nx.Graph): NetworkX graph with nodes having 'active' and 'current_occupancy' attributes,
-                      and edges having 'active' (bool) and 'arc_id' attributes.
-        start_node (int): The node ID to start from.
-        exit_nodes (List[int]): List of exit node IDs.
-
-    Returns:
-        Optional[List[int]]: Ordered list of arc IDs forming the shortest path, or None if no path found.
-    """
     logger = setup_logging("path_calculator", "MapManager/logs/pathCalculator.log")
     
     if start_node not in G:
@@ -63,7 +50,7 @@ def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[in
                 for i in range(len(node_path) - 1):
                     u = node_path[i]
                     v = node_path[i+1]
-                    arc_data = G.get_edge_data(u, v)
+                    arc_data = G.get_edge_data(u, v) or G.get_edge_data(v, u)
                     if arc_data is None or "arc_id" not in arc_data:
                         continue
                     arc_path.append(arc_data["arc_id"])

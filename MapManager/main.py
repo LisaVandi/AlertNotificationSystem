@@ -84,11 +84,9 @@ def main():
 
     # Initialize default evacuation paths for each floor graph
     for floor in graph_manager.graphs.keys():
-        initialize_evacuation_paths(floor, default_event_type="Evacuation")
-
+        initialize_evacuation_paths(floor, event_type="Earthquake")
     logger.info("Initialization completed. MapManager ready and listening.")
 
-    
     try:
         rabbitmq_handler = RabbitMQHandler(
             host=RABBITMQ_CONFIG["host"],

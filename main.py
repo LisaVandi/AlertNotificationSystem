@@ -3,14 +3,14 @@ import threading
 import signal
 import os
 import time
+import webbrowser
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 LOG_DIR = os.path.join(BASE_DIR, "logs")
-CHECK_INTERVAL = 2  # secondi tra un controllo e l’altro
+CHECK_INTERVAL = 2  
 shutdown_event = threading.Event()
 processes = {}
 
-# Comandi da eseguire nell’ordine specificato
 startup_sequence = [
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
     ("NotificationCenter", ["python", "-m", "NotificationCenter.main"]),
@@ -20,16 +20,15 @@ startup_sequence = [
     ("MapManager", ["python", "-m", "MapManager.main"]),
 ]
 
-# File da monitorare e segnali da cercare
 monitor_targets = [
     {
         "name": "NotificationCenter",
-        "log_file": os.path.join(LOG_DIR, "alertConsumer.log"),
+        "log_file":  os.path.join(LOG_DIR, "alertConsumer.log"), 
         "trigger_text": '"msgType": "Cancel"'
     },
     {
         "name": "PositionManager",
-        "log_file": os.path.join(LOG_DIR, "positionManager.log"),
+        "log_file":  os.path.join(LOG_DIR, "positionManager.log"),
         "trigger_text": "FINISHED_POSITIONS"
     }
 ]
@@ -37,6 +36,7 @@ monitor_targets = [
 
 def run_process(name, cmd):
     print(f"[START] {name}")
+    
     log_file_path = os.path.join(LOG_DIR, f"{name.replace(' ', '_').lower()}.log")
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
@@ -44,12 +44,12 @@ def run_process(name, cmd):
         proc = subprocess.Popen(
             cmd,
             cwd=BASE_DIR,
-            stdout=log_file,  # Log del comando
+            stdout=log_file,  
             stderr=subprocess.STDOUT
         )
         processes[name] = proc
 
-
+        
 
 def monitor_logs():
     last_positions = {t['name']: 0 for t in monitor_targets}
@@ -64,16 +64,16 @@ def monitor_logs():
 
                 for line in new_lines:
                     if target["trigger_text"] in line:
-                        print(f"[TRIGGER] Rilevato '{target['trigger_text']}' in {target['log_file']}")
+                        print(f"[TRIGGER] '{target['trigger_text']}' in {target['log_file']}")
                         shutdown_event.set()
                         return
             except FileNotFoundError:
-                pass  # può succedere se il log non è stato ancora creato
+                pass  
         time.sleep(CHECK_INTERVAL)
 
 
 def shutdown_all():
-    print("[SHUTDOWN] Terminazione dei microservizi...")
+    print("[SHUTDOWN] Termination of microservices...")
     for name, proc in processes.items():
         if proc.poll() is None:
             try:
@@ -81,22 +81,22 @@ def shutdown_all():
                 proc.terminate()
                 print(f"[STOPPED] {name}")
             except Exception as e:
-                print(f"[WARN] Errore nel terminare {name}: {e}")
+                print(f"[WARN] Error while terminating {name}: {e}")
 
 
 def main():
-    # Avvio microservizi
     for name, cmd in startup_sequence:
         run_process(name, cmd)
-        # Aggiunta del ritardo personalizzato dopo specifici processi
-        if name == "MapViewer websocket":
-            time.sleep(3)  # Tempo extra per far partire il WebSocket
-        else:
-            time.sleep(1.5)  # Ritardo standard
+        time.sleep(1.5)
 
-    print("\n[INFO] Tutti i microservizi sono stati avviati. Monitoraggio in corso...\n")
+    try:
+        webbrowser.open("http://127.0.0.1:8000")
+        print("[INFO] Open browser on http://127.0.0.1:8000")
+    except Exception as e:
+        print(f"[WARN] Unable to open browser: {e}")
+    
+    print("\n[INFO] All microservices have been started. Monitoring in progress...\n")
 
-    # Avvio thread per controllare i log
     monitor_thread = threading.Thread(target=monitor_logs, daemon=True)
     monitor_thread.start()
 
@@ -104,7 +104,7 @@ def main():
         while not shutdown_event.is_set():
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n[CTRL+C] Interruzione manuale.")
+        print("\n[CTRL+C] Manual interruption.")
         shutdown_event.set()
     finally:
         shutdown_all()
