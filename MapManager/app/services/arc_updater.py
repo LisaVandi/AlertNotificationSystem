@@ -1,25 +1,24 @@
-import logging
 import psycopg2
 from typing import List
 
 from MapManager.app.config.settings import DATABASE_CONFIG, PATHFINDING_CONFIG
 from MapViewer.app.services.graph_manager import graph_manager
+from MapManager.app.config.logging import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging("arc_updater", "MapManager/logs/arcUpdater.log")
 
 def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
     """
-    Aggiorna lo stato di attivazione degli archi nel grafo e nel DB:
-    - disattiva archi interrotti (lista)
-    - disattiva archi sovraccarichi (flow > capacity)
+    Updates the activation status of arcs in the graph and the database:
+    - deactivates arcs listed as broken
 
     Args:
-        floor_level (int): piano da aggiornare
-        broken_arc_ids (List[int]): lista opzionale di arc_id interrotti
+        floor_level (int): floor to update
+        broken_arc_ids (List[int]): optional list of broken arc IDs
     """
     G = graph_manager.get_graph(floor_level)
     if G is None:
-        logger.warning(f"Nessun grafo per il piano {floor_level}")
+        logger.warning(f"No graph for floor {floor_level}")
         return
 
     try:
@@ -31,17 +30,11 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
             if arc_id is None:
                 continue
 
-            # Verifica stato
-            flow = data.get("flow", 0)
-            capacity = data.get("capacity", PATHFINDING_CONFIG["max_arc_capacity"])
             is_broken = arc_id in broken_arc_ids
-            is_overloaded = flow > capacity
-
-            should_deactivate = is_broken or is_overloaded
             currently_active = data.get("active", True)
 
-            if currently_active and should_deactivate:
-                logger.info(f"Disattivo arco {arc_id} (rotto={is_broken}, sovraccarico={is_overloaded})")
+            if currently_active and is_broken:
+                logger.info(f"Deactivating arc {arc_id} (broken={is_broken})")
 
                 data["active"] = False
 
@@ -59,5 +52,5 @@ def update_arc_statuses(floor_level: int, broken_arc_ids: List[int] = []):
         conn.close()
 
     except Exception as e:
-        logger.error(f"Errore durante l'aggiornamento degli archi: {str(e)}")
+        logger.error(f"Error updating arcs: {str(e)}")
         raise

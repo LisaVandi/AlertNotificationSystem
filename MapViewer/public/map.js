@@ -27,7 +27,6 @@ function imgPxToLatLng(x, y) {
 
 // Conversione latlng Leaflet → pixel immagine
 function latLngToImgPx(lat, lng, imageHeight) {
-  // Inverti y: y_pixel = imageHeight - lat
   return {
     x: Math.round(lng),
     y: Math.round(imageHeight - lat)
@@ -109,7 +108,6 @@ function createNodeMarker(node, latlng, mapObj) {
           alert("Arco creato con successo");
         })
         .catch(err => {
-          console.error("Errore creazione arco:", err);
           alert(err.message);
         })
         .finally(() => {
@@ -131,7 +129,6 @@ function addClickListener(mapObj) {
     const latlng = e.latlng;
     const px = latLngToImgPx(latlng.lat, latlng.lng, mapObj.imageHeight);
 
-    console.log("Click pixel coords", px.x, px.y);
     currentClickCoords = { x_px: px.x, y_px: px.y };
     activeFloor = mapObj.floor;
 
@@ -169,7 +166,6 @@ async function updateNodeType() {
     mapObj.markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     hideNodeTypeSelector();
   } catch (e) {
-    console.error("Errore nella creazione nodo:", e);
     alert("Errore nella creazione nodo: " + e.message);
   }
 }
@@ -202,9 +198,8 @@ async function loadGraph(mapObj) {
 
     // Disegna i nodi
     data.nodes.forEach(node => {
-      console.log(`Node original px ${node.id} y: ${node.y}, imageHeight: ${mapObj.imageHeight}, calc lat: ${mapObj.imageHeight - node.y}`);
-      const latlng = imgPxToLatLng(node.x, node.y);
-      console.log("Node leaflet coords", latlng.lat, latlng.lng);
+      // const latlng = imgPxToLatLng(node.x, node.y);
+      const latlng = L.latLng(imageHeight - node.y, node.x);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
 
@@ -212,9 +207,8 @@ async function loadGraph(mapObj) {
     data.arcs.forEach(arc => {
       if (arc.active === false) return;  // Salta gli archi non attivi
 
-      // Converti le coordinate x1, y1, x2, y2 per ogni arco
-      const from = imgPxToLatLng(arc.x1, arc.y1);
-      const to = imgPxToLatLng(arc.x2, arc.y2);
+      const from = L.latLng(imageHeight - arc.y1, arc.x1);
+      const to = L.latLng(imageHeight - arc.y2, arc.x2);
       
       // Disegna arco tra i nodi
       L.polyline([from, to], {
@@ -225,7 +219,6 @@ async function loadGraph(mapObj) {
     });
     
   } catch (e) {
-    console.error(`Errore caricamento grafo piano ${floor}:`, e);
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
   }
@@ -243,11 +236,7 @@ function toggleAddEdgeMode() {
 
 // INIT principale
 async function init() {
-  console.log("init() start");
-  // Carica immagini
   const images = (await fetch("/api/images").then(r => r.json())).images;
-  console.log(`Immagini caricate: ${images.join(", ")}`);
-  // Carica tipi nodo
   const nodeTypesData = (await fetch("/api/node-types").then(r => r.json()));
   initNodeTypes(nodeTypesData.node_types);
   mapsContainer.innerHTML = "";
@@ -260,18 +249,45 @@ async function init() {
     await new Promise(res => { img.onload = res; img.onerror = res; });
     const imageWidth  = img.width;
     const imageHeight = img.height;
-    console.log(`Image ${imageFilename}: width=${imageWidth}, height=${imageHeight}`);
-    // Contenitore dinamico
+    
+    // const container = document.createElement("div");
+    // container.className = "map-container";
+    // container.innerHTML = `
+    //   <div class="title">Floor ${floor} — ${imageFilename}</div>
+    //   <div id="map-${floor}" style="width:100%; height:100%;"></div>
+    // `;
+    // mapsContainer.appendChild(container);
+    // // Mantieni proporzioni
+    // const w = container.clientWidth;
+    // container.style.height = `${w * (imageHeight / imageWidth)}px`;
+
+    // 1) wrapper per l'aspect ratio
     const container = document.createElement("div");
     container.className = "map-container";
-    container.innerHTML = `
-      <div class="title">Floor ${floor} — ${imageFilename}</div>
-      <div id="map-${floor}" style="width:100%; height:100%;"></div>
-    `;
+
+    // Titolo
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = `Floor ${floor} — ${imageFilename}`;
+    container.appendChild(title);
+
+    // 2) wrapper interno che mantiene l’aspect-ratio
+    const wrapper = document.createElement("div");
+    wrapper.className = "map-wrapper";
+    // wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
+
+    wrapper.style.setProperty('--ar-width',  imageWidth);
+    wrapper.style.setProperty('--ar-height', imageHeight);
+
+    // div che Leaflet trasformerà in mappa
+    const mapDiv = document.createElement("div");
+    mapDiv.id = `map-${floor}`;
+    mapDiv.className = "map";
+    wrapper.appendChild(mapDiv)
+
+    container.appendChild(wrapper);
     mapsContainer.appendChild(container);
-    // Mantieni proporzioni
-    const w = container.clientWidth;
-    container.style.height = `${w * (imageHeight / imageWidth)}px`;
+
     // Inizializza Leaflet
     const map = L.map(`map-${floor}`, {
       crs: L.CRS.Simple,
@@ -282,10 +298,9 @@ async function init() {
       tap: false, touchZoom: false,
     });
     
-    // const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
-    const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
+    const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
+    // const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
     
-    console.log("Bounds:", bounds.getSouthWest(), bounds.getNorthEast());
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
     L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);
@@ -306,14 +321,14 @@ async function init() {
     addClickListener(mapObj);
     // Ridimensiona al resize
     window.addEventListener("resize", () => {
-      const w2 = container.clientWidth;
-      container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
-      map.invalidateSize();
+      // const w2 = container.clientWidth;
+      // container.style.height = `${w2 * (imageHeight / imageWidth)}px`;
+      // map.invalidateSize();
+      maps.forEach(({ map }) => map.invalidateSize());
     });
   }
   if (maps.length > 0) {
     activeFloor = maps[0].floor;
-    console.log(`Piano attivo impostato: ${activeFloor}`);
   }
   // Bottoni
   document.getElementById("btnAddEdge")

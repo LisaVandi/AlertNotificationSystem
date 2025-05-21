@@ -30,7 +30,7 @@ def setup_logger():
         console_handler.setFormatter(formatter)  # Apply the formatter to the console handler
         
         # File handler for logging DEBUG and above levels to a file
-        file_handler = logging.FileHandler(os.path.join(log_dir, log_file), mode='a')  # Open file in append mode
+        file_handler = logging.FileHandler(os.path.join(log_dir, log_file), mode='w')  
         file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to the file
         file_handler.setFormatter(formatter)  # Apply the formatter to the file handler
         
