@@ -43,7 +43,7 @@ def setup_logger():
         # File handler:
         # This handler will write logs to a file located at 'UserSimulator/logs/simulation.log'.
         # We set its level to DEBUG, meaning that all messages from DEBUG and higher severity will be written to the log file.
-        file_handler = logging.FileHandler(os.path.join(log_dir, 'simulation.log'), mode='a')
+        file_handler = logging.FileHandler(os.path.join(log_dir, 'simulation.log'), mode='w')
         file_handler.setLevel(logging.DEBUG)  # File output will capture DEBUG level and higher
         file_handler.setFormatter(formatter)  # Apply the same formatter to the file handler
         

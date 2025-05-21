@@ -168,8 +168,12 @@ def handle_evacuation(msg):
     if not simulation_active:
         return  # Do nothing if simulation is stopped
 
-    user_id = msg['user_id']  # Get the user ID
-    evacuation_path = msg['evacuation_path']  # Get the evacuation path
+    user_id = msg['user_id']
+    evacuation_path = msg.get('evacuation_path')
+
+    if not evacuation_path:
+        logger.warning(f"Evacuation path for user {user_id} is empty or None.")
+        return
 
     # Retrieve the current position of the user
     current_position = get_current_position(user_id)
@@ -178,16 +182,28 @@ def handle_evacuation(msg):
         return
 
     x, y, z, node_id = current_position
-    channel, _ = get_rabbitmq_channel()  # Get RabbitMQ channel
+    channel, _ = get_rabbitmq_channel()
 
-    # For each arc in the evacuation path
     for arc_id in evacuation_path:
-        arc = get_arc_by_id(arc_id)  # Get arc details by ID
-        if arc:
-            final_node_id = arc['final_node']  # Get the final node in the path
-            final_node = get_nodes_by_type()  # Retrieve final node details
-            x, y, z = generate_random_position_within_node(final_node)  # Generate new random position
-            send_position_to_position_manager(channel, user_id, x, y, z, final_node_id)  # Send the new position
+        arc = get_arc_by_id(arc_id)
+        if not arc:
+            logger.warning(f"Skipping arc {arc_id} for user {user_id}: not found.")
+            continue
+
+        final_node_id = arc['final_node']
+        all_nodes = get_nodes_by_type()
+
+        # Search for the final node in the list of nodes
+        final_node = next((n for n in all_nodes if n['node_id'] == final_node_id), None)
+
+        if final_node:
+            try:
+                x, y, z = generate_random_position_within_node(final_node)
+                send_position_to_position_manager(channel, user_id, x, y, z, final_node_id)
+            except Exception as e:
+                logger.error(f"Failed to simulate position for user {user_id} in node {final_node_id}: {e}")
+        else:
+            logger.warning(f"Final node with ID {final_node_id} not found for user {user_id}.")
 
     logger.info(f"Evacuation completed for user {user_id}.")
 
@@ -200,13 +216,46 @@ def handle_stop():
 
 def simulate_user_movement(msg):
     """Simulates user movement based on the received event message"""
-    msg_type = msg.get('msgType')  # Get the type of message (Alert, Evacuation, Stop)
+    
+    if isinstance(msg, list):
+        # Il messaggio è una lista di dizionari => batch di evacuation paths
+        for user_msg in msg:
+            if user_msg.get('evacuation_path') is not None:
+                handle_evacuation(user_msg)
+        return
+
+    # Altrimenti, messaggio normale con struttura a dizionario
+    msg_type = msg.get('msgType')
     
     if msg_type == 'Alert':
-        handle_alert(msg)  # Handle the alert event
+        handle_alert(msg)
     elif msg_type == 'Evacuation':
-        handle_evacuation(msg)  # Handle the evacuation event
+        handle_evacuation(msg)
     elif msg_type == 'Stop':
-        handle_stop()  # Stop the simulation if the stop event is received
+        handle_stop()
     else:
-        logger.warning(f"Unrecognized message type: {msg_type}")  # Log a warning if the message type is unknown
+        logger.warning(f"Unrecognized message type: {msg_type}")
+
+
+def get_arc_by_id(arc_id):
+    """Retrieve arc information from the database by arc_id"""
+    try:
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT arc_id, initial_node, final_node FROM arcs WHERE arc_id = %s", (arc_id,))
+        arc = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if arc:
+            return {
+                'arc_id': arc[0],
+                'initial_node': arc[1],
+                'final_node': arc[2]
+            }
+        else:
+            logger.warning(f"Arc with ID {arc_id} not found.")
+            return None
+    except Exception as e:
+        logger.error(f"Error retrieving arc {arc_id}: {e}")
+        return None
