@@ -14,22 +14,27 @@ emergencies:
     type: floor  # Defines the type of event (e.g., 'floor', 'zone', 'all')
     # Floors considered dangerous during a flood.
     danger_floors: [0]  # Floor 0 is defined as dangerous during a flood.
+    safe_node_type: "stairs"
 
   # Configuration for the 'Earthquake' event type.
   Earthquake:
     type: all  # Defines that all floors or areas are considered dangerous during an earthquake.
+    safe_node_type: "outdoor"
 
   # Configuration for the 'Hazardous Material' event type.
   Hazardous Material:
     type: all  # Defines that all floors or areas are considered dangerous during hazardous material exposure.
+    safe_node_type: "outdoor"
 
   # Configuration for the 'Severe Weather' event type.
   Severe Weather:
     type: all  # Defines that all floors or areas are considered dangerous during severe weather events.
+    safe_node_type: "outdoor"
 
   # Configuration for the 'Power Outage' event type.
   Power Outage:
     type: all  # Defines that all floors or areas are considered dangerous during a power outage.
+    safe_node_type: "outdoor"
 
   # Configuration for the 'Fire' event type.
   Fire:
@@ -42,3 +47,4 @@ emergencies:
       y2: 500  # Upper bound of the y-coordinate for the danger zone.
       z1: 0    # Lower bound of the z-coordinate (floor level) for the danger zone.
       z2: 1    # Upper bound of the z-coordinate (floor level) for the danger zone.
+    safe_node_type: "outdoor"      

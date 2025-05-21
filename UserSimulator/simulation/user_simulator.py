@@ -10,6 +10,7 @@ import yaml
 # Global variables to track the last user_id and the simulation state
 user_id_counter = 0  # Start with a base ID
 simulation_active = True  # Global flag to control the simulation state
+current_event = None
 
 def load_config(config_path="UserSimulator/config/config.yaml"):
     """Loads the configuration from the YAML file"""
@@ -103,7 +104,7 @@ def generate_random_position_within_node(node):
         raise
 
 
-def send_position_to_position_manager(channel, user_id, x, y, z, node_id, event=None):
+def send_position_to_position_manager(channel, user_id, x, y, z, node_id, event=current_event):
     """Sends the generated position to the position manager via RabbitMQ"""
     try:
         message = {
@@ -143,9 +144,14 @@ def handle_alert(msg):
     channel, _ = get_rabbitmq_channel()  # Get RabbitMQ channel
 
     # Extract each event from the "info" list in the message
+    global current_event
     for alert_info in msg.get("info", []):
         event = alert_info.get("event", "Unknown")
-        logger.info(f"Processing event of type '{event}'")
+        if not current_event:
+            current_event = event  # Save the event for the session
+            logger.info(f"Storing event for simulation: '{current_event}'")
+        logger.info(f"Processing event of type '{event}' (stored event: '{current_event}')")
+
 
     for node_type, probability in distribution.items():
         nodes = get_nodes_by_type(node_type)  # Retrieve nodes by type (e.g., classrooms, corridors)
@@ -158,7 +164,7 @@ def handle_alert(msg):
             node = random.choice(nodes)
             x, y, z = generate_random_position_within_node(node)
             user_id = generate_unique_user_id()  # Generate a unique user ID
-            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event=event)  # Send user position
+            send_position_to_position_manager(channel, user_id, x, y, z, node['node_id'], event=current_event)  # Send user position
 
     logger.info("Alert message processing completed.")
 
@@ -199,7 +205,7 @@ def handle_evacuation(msg):
         if final_node:
             try:
                 x, y, z = generate_random_position_within_node(final_node)
-                send_position_to_position_manager(channel, user_id, x, y, z, final_node_id)
+                send_position_to_position_manager(channel, user_id, x, y, z, final_node_id, event = current_event)
             except Exception as e:
                 logger.error(f"Failed to simulate position for user {user_id} in node {final_node_id}: {e}")
         else:

@@ -4,6 +4,7 @@ import time
 import threading
 from PositionManager.db.db_manager import DBManager
 from PositionManager.utils.logger import logger
+from PositionManager.utils.config_loader import ConfigLoader
 import yaml
 
 class PositionManagerConsumer:
@@ -34,9 +35,9 @@ class PositionManagerConsumer:
             config_file (str): Path to the YAML configuration file.
         """
         self.db_manager = DBManager()
-        self.config = self.load_config(config_file)
-        self.dispatch_threshold = self.config.get('dispatch_threshold', 10)
-        self.dispatch_interval = self.config.get('dispatch_interval', 10)  # Time interval in seconds
+        self.config_loader = ConfigLoader(config_file)
+        self.dispatch_threshold = self.config_loader.threshold
+        self.dispatch_interval = self.config_loader.config.get('dispatch_interval', 10)
         self.processed_count = 0
         self.last_dispatch_time = time.time()
         self.last_event = None
@@ -52,20 +53,7 @@ class PositionManagerConsumer:
         # Start a separate thread for periodic data flush
         threading.Thread(target=self.periodic_flush, daemon=True).start()
 
-    def load_config(self, config_file):
-        """
-        Loads the configuration data from the provided YAML file.
-
-        Args:
-            config_file (str): Path to the YAML configuration file.
-
-        Returns:
-            dict: The loaded configuration data.
-        """
-        with open(config_file, 'r') as file:
-            config = yaml.safe_load(file)
-        return config
-
+    
     def periodic_flush(self):
         """
         Periodically flushes the aggregated data if the dispatch threshold is met or the dispatch interval has passed.
@@ -102,62 +90,28 @@ class PositionManagerConsumer:
             z = message.get("z")
             node_id = message.get("node_id")
             
-            # Calculate the danger level based on the event and position
-            danger = self.calculate_danger(event, x, y, z, node_id)
-            
-            # Upsert current position and insert historical position into the database
+            node_type = self.db_manager.get_node_type(node_id)
+            floor_level = self.db_manager.get_floor_level_by_node(node_id)
+
+            danger = self.config_loader.is_user_in_danger(
+            event,
+            {"x": x, "y": y, "z": z},
+            node_type=node_type,
+            floor_level=floor_level
+            )
+
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
             self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
-            
-            # Increment the processed message count
+
             self.processed_count += 1
 
-            # If threshold reached, send the aggregated data
             if self.processed_count >= self.dispatch_threshold:
                 self.send_aggregated_data()
-                self.processed_count = 0  # Reset the counter
+                self.processed_count = 0
 
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
 
-    def calculate_danger(self, event, x, y, z, node_id):
-        """
-        Calculates whether a user is in danger based on the event type and their position.
-
-        Args:
-            event (str): The type of emergency event.
-            x (float): The x-coordinate of the user.
-            y (float): The y-coordinate of the user.
-            z (float): The z-coordinate (floor level) of the user.
-
-        Returns:
-            bool: True if the user is in danger, False otherwise.
-        """
-        if event not in self.config['emergencies']:
-            logger.warning(f"Unknown event type: {event}")
-            return False  # Default to no danger if event is unknown
-
-        event_config = self.config['emergencies'][event]
-
-        if event_config['type'] == 'all':
-            return True  # Evacuate all users for this event
-
-        if event_config['type'] == 'floor':
-            danger_floors = event_config.get('danger_floors', [])
-            floor_level = self.db_manager.get_floor_level_by_node(node_id)
-            if floor_level is None:
-                logger.warning(f"Could not find floor level for node_id {node_id}")
-                return False
-            return floor_level in danger_floors
-
-        if event_config['type'] == 'zone':
-            # For zone-based events, evacuate users within a specific area
-            danger_zone = event_config.get('danger_zone', {})
-            return danger_zone['x1'] <= x <= danger_zone['x2'] and \
-                   danger_zone['y1'] <= y <= danger_zone['y2'] and \
-                   danger_zone['z1'] <= z <= danger_zone['z2']
-        
-        return False
 
     def send_aggregated_data(self):
         """

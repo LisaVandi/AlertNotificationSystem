@@ -162,6 +162,30 @@ class DBManager:
         except Exception as e:
             logger.error(f"Failed to retrieve floor_level for node {node_id}: {e}")
             return None
+        
+    def get_node_type(self, node_id):
+        """
+        Recupera il tipo di nodo (ad esempio 'stairs', 'outdoor', ecc.) dato il node_id.
+
+        Args:
+            node_id (int): L'ID del nodo.
+
+        Returns:
+            str or None: Il tipo di nodo o None se non trovato o errore.
+        """
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT node_type
+                    FROM nodes
+                    WHERE node_id = %s;
+                """, (node_id,))
+                result = cursor.fetchone()
+                return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Failed to retrieve node_type for node {node_id}: {e}")
+            return None
+
 
 
     def close(self):
