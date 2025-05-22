@@ -1,16 +1,14 @@
-"""
-Robust RabbitMQ Handler with improved connection management and error handling.
-"""
 import pika
 import json
 import time
 from typing import Callable, Any, Dict
 from NotificationCenter.app.config.logging import setup_logging, flush_logs, close_logging
 
+
 class RabbitMQHandler:
     def __init__(self, host: str = 'localhost', port: int = 5672, 
                  username: str = None, password: str = None):
-        self.logger = setup_logging("rabbitmq_handler", "NotificationCenter/logs/rabbitmqHandler.log")
+        self.logger = setup_logging("rabbitmq_handler", "NotificationCenter/logs/rabbitmq_handler.log")
         self._connection_params = pika.ConnectionParameters(
             host=host,
             port=port,
@@ -103,7 +101,12 @@ class RabbitMQHandler:
                 auto_ack=False
             )
             self.logger.info(f"Started consuming from {queue_name}")
-            self._channel.start_consuming()
+            try:
+                self._channel.start_consuming()
+            except KeyboardInterrupt:
+                self.logger.info("Consumer interrupted by user, stopping...")
+                self._channel.stop_consuming()
+                
         except Exception as e:
             self.logger.error(f"Failed to start consumer: {str(e)}")
             raise
@@ -119,7 +122,7 @@ class RabbitMQHandler:
         self._connect()
         
     def purge_queue(self, queue_name: str):
-        self.channel.queue_purge(queue=queue_name)
+        self._channel.queue_purge(queue=queue_name)
         print(f"[INFO] Queue '{queue_name}' purged.")
 
     def close(self):

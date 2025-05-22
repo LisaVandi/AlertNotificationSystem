@@ -1,13 +1,12 @@
 let activeFloor = null;
 const mapsContainer = document.getElementById("maps");
-let maps = []; // { floor, map, markersLayer, arcsLayer, imageFilename, imageWidth, imageHeight }
+let maps = []; 
 const nodeTypeSelector = document.getElementById("node-type-selector");
 const nodeTypeSelect = document.getElementById("node-type");
 let currentClickCoords = null;
 let isAddingEdge = false;
 let selectedNodesForEdge = [];
 
-// Inizializza tipi nodo
 function initNodeTypes(types) {
   nodeTypeSelect.innerHTML = "";
   types.forEach(t => {
@@ -18,14 +17,14 @@ function initNodeTypes(types) {
   });
 }
 
-// Conversione pixel immagine → lat/lng Leaflet
+// Convert image pixels → Leaflet lat/lng
 function imgPxToLatLng(x, y) {
   const mapObj = maps.find(m => m.floor === activeFloor);
   if (!mapObj) return L.latLng(y, x);
   return L.latLng(mapObj.imageHeight - y, x);
 }
 
-// Conversione latlng Leaflet → pixel immagine
+// Conversion Leaflet latlng → image pixels
 function latLngToImgPx(lat, lng, imageHeight) {
   return {
     x: Math.round(lng),
@@ -33,7 +32,6 @@ function latLngToImgPx(lat, lng, imageHeight) {
   };
 }
 
-// Mostra/nasconde il selettore di tipo nodo
 function showNodeTypeSelector(clientX, clientY) {
   const margin = 10;
   const selectorWidth = nodeTypeSelector.offsetWidth || 150;
@@ -54,7 +52,6 @@ function hideNodeTypeSelector() {
   currentClickCoords = null;
 }
 
-// Colori e marker
 function getColorByOccupancy(occ, capacity) {
   if (capacity === 0) return "#BDBDBD";
   const ratio = occ / capacity;
@@ -98,7 +95,7 @@ function createNodeMarker(node, latlng, mapObj) {
         }),
       })
         .then(async resp => {
-          if (!resp.ok) throw new Error(`Errore creazione arco: ${resp.status}`);
+          if (!resp.ok) throw new Error(`Error creating edge: ${resp.status}`);
           L.polyline([fromNode.latlng, toNode.latlng], {
             color: "#2196F3",
             weight: 5,
@@ -111,7 +108,7 @@ function createNodeMarker(node, latlng, mapObj) {
         .finally(() => {
           selectedNodesForEdge = [];
           isAddingEdge = false;
-          document.getElementById("btnAddEdge").textContent = "Aggiungi arco";
+          document.getElementById("btnAddEdge").textContent = "Add edge";
         });
     }
   });
@@ -119,7 +116,6 @@ function createNodeMarker(node, latlng, mapObj) {
   return marker;
 }
 
-// Click per aggiungere nodo
 function addClickListener(mapObj) {
   mapObj.map.on("click", e => {
     if (isAddingEdge) return;
@@ -134,7 +130,6 @@ function addClickListener(mapObj) {
   });
 }
 
-// POST nuovo nodo
 async function updateNodeType() {
   if (!currentClickCoords) return;
   const selectedType = nodeTypeSelect.value;
@@ -156,14 +151,14 @@ async function updateNodeType() {
         image_height: mapObj.imageHeight
       }),
     });
-    if (!resp.ok) throw new Error(`Errore creazione nodo: ${resp.status}`);
+    if (!resp.ok) throw new Error(`Error creating node: ${resp.status}`);
     const data = await resp.json();
     const node = data.node;
     const latlng = imgPxToLatLng(node.x, node.y);
     mapObj.markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     hideNodeTypeSelector();
   } catch (e) {
-    alert("Errore nella creazione nodo: " + e.message);
+    alert("Error while creating node: " + e.message);
   }
 }
 
@@ -193,21 +188,17 @@ async function loadGraph(mapObj) {
     markersLayer.clearLayers();
     arcsLayer.clearLayers();
 
-    // Disegna i nodi
     data.nodes.forEach(node => {
-      // const latlng = imgPxToLatLng(node.x, node.y);
       const latlng = L.latLng(imageHeight - node.y, node.x);
       markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
 
-    // Disegna gli archi con corretta conversione delle coordinate
     data.arcs.forEach(arc => {
-      if (arc.active === false) return;  // Salta gli archi non attivi
+      if (arc.active === false) return;  
 
       const from = L.latLng(imageHeight - arc.y1, arc.x1);
       const to = L.latLng(imageHeight - arc.y2, arc.x2);
       
-      // Disegna arco tra i nodi
       L.polyline([from, to], {
         color: "#333333",
         weight: 3,
@@ -221,16 +212,13 @@ async function loadGraph(mapObj) {
   }
 }
 
-
-// Toggle modalità aggiunta arco
 function toggleAddEdgeMode() {
   isAddingEdge = !isAddingEdge;
   selectedNodesForEdge = [];
   const btn = document.getElementById("btnAddEdge");
-  btn.textContent = isAddingEdge ? "Annulla aggiunta arco" : "Aggiungi arco";  
+  btn.textContent = isAddingEdge ? "Cancel add edge" : "Add edge";
 }
 
-// INIT principale
 async function init() {
   const images = (await fetch("/api/images").then(r => r.json())).images;
   const nodeTypesData = (await fetch("/api/node-types").then(r => r.json()));
@@ -245,37 +233,19 @@ async function init() {
     await new Promise(res => { img.onload = res; img.onerror = res; });
     const imageWidth  = img.width;
     const imageHeight = img.height;
-    
-    // const container = document.createElement("div");
-    // container.className = "map-container";
-    // container.innerHTML = `
-    //   <div class="title">Floor ${floor} — ${imageFilename}</div>
-    //   <div id="map-${floor}" style="width:100%; height:100%;"></div>
-    // `;
-    // mapsContainer.appendChild(container);
-    // // Mantieni proporzioni
-    // const w = container.clientWidth;
-    // container.style.height = `${w * (imageHeight / imageWidth)}px`;
 
-    // 1) wrapper per l'aspect ratio
     const container = document.createElement("div");
     container.className = "map-container";
 
-    // Titolo
     const title = document.createElement("div");
     title.className = "title";
     title.textContent = `Floor ${floor} — ${imageFilename}`;
     container.appendChild(title);
 
-    // 2) wrapper interno che mantiene l’aspect-ratio
     const wrapper = document.createElement("div");
     wrapper.className = "map-wrapper";
     wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
 
-    // wrapper.style.setProperty('--ar-width',  imageWidth);
-    // wrapper.style.setProperty('--ar-height', imageHeight);
-
-    // div che Leaflet trasformerà in mappa
     const mapDiv = document.createElement("div");
     mapDiv.id = `map-${floor}`;
     mapDiv.className = "map";
@@ -284,7 +254,6 @@ async function init() {
     container.appendChild(wrapper);
     mapsContainer.appendChild(container);
 
-    // Inizializza Leaflet
     const map = L.map(`map-${floor}`, {
       crs: L.CRS.Simple,
       minZoom: 0, maxZoom: 0,
@@ -295,14 +264,13 @@ async function init() {
     });
     
     const bounds = L.latLngBounds([imageHeight,0], [0, imageWidth]);
-    // const bounds = L.latLngBounds([0,0], [imageHeight, imageWidth]);
     
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
     L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);
     const markersLayer = L.layerGroup().addTo(map);
     const arcsLayer    = L.layerGroup().addTo(map);
-    // Memorizza metadata map
+
     const mapObj = {
       floor,
       map,
@@ -315,7 +283,6 @@ async function init() {
     maps.push(mapObj);
     await loadGraph(mapObj);
     addClickListener(mapObj);
-    // Ridimensiona al resize
     window.addEventListener("resize", () => {
       maps.forEach(({ map, imageWidth, imageHeight }) => {
         const container = document.getElementById(`map-${map.options.crs.code.split(':').pop()}`)?.parentElement;
@@ -331,7 +298,7 @@ async function init() {
   if (maps.length > 0) {
     activeFloor = maps[0].floor;
   }
-  // Bottoni
+
   document.getElementById("btnAddEdge")
     .addEventListener("click", toggleAddEdgeMode);
   document.getElementById("btnUpdateGraph")
@@ -346,4 +313,4 @@ async function init() {
     .addEventListener("click", hideNodeTypeSelector);
 }
 
-init().catch(err => console.error("Errore in init():", err));
+init().catch(err => console.error("Error in init():", err));

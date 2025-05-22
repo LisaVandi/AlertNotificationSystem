@@ -1,9 +1,6 @@
-"""
-Reliable alert dispatcher to User Simulator.
-"""
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.config.settings import USER_SIMULATOR_QUEUE, EVACUATION_PATHS_QUEUE
-from NotificationCenter.app.config.logging import setup_logging
+from NotificationCenter.app.config.logging import setup_logging, flush_logs, close_logging
 
 logger = setup_logging("alert_smister_to_user_simulator", "NotificationCenter/logs/alertSmisterUserSimulator.log")
 
