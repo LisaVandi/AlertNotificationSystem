@@ -41,19 +41,9 @@ def setup_logging(logger_name: str, log_file: str) -> logging.Logger:
     return logger
 
 def flush_logs(logger: logging.Logger):
-    """
-    Forces all handlers of the specified logger to flush their buffers, ensuring logs are written to the file.
-
-    Args:
-        logger (logging.Logger): The logger whose handlers should be flushed.
-    """
     for handler in logger.handlers:
         handler.flush()
-        # Close and reopen the handler to ensure the file is updated
-        if isinstance(handler, logging.FileHandler):
-            handler.close()
-            handler.stream = open(handler.baseFilename, handler.mode)
-
+        
 def close_logging(logger: logging.Logger):
     """
     Closes all handlers of the specified logger to release file resources.

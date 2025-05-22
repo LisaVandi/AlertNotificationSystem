@@ -20,7 +20,7 @@ def test_send_alert_to_user_simulator_success(mock_logger):
             routing_key=USER_SIMULATOR_QUEUE,
             message=message
         )
-        mock_logger.info.assert_called_once_with("Alert forwarded to User Simulator")
+        mock_logger.info.assert_called_once_with("Forwarding alert to User Simulator: {'key': 'value'}")
 
 @patch("NotificationCenter.app.handlers.alert_smister_to_user_simulator.logger")
 def test_send_alert_to_user_simulator_failure(mock_logger):

@@ -14,7 +14,7 @@ def send_alert_to_user_simulator(rabbitmq_handler: RabbitMQHandler, message: dic
             routing_key=USER_SIMULATOR_QUEUE,
             message=message
         )
-        logger.info("Alert forwarded to User Simulator")
+        logger.info(f"Forwarding alert to User Simulator: {message}")    
     except Exception as e:
         logger.error(f"Failed to forward alert to User Simulator: {str(e)}")
         raise
