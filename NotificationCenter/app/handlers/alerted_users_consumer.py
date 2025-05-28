@@ -1,10 +1,7 @@
-"""
-Evacuation path consumer to forward messages to User Simulator.
-"""
 from typing import Dict, Any
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.handlers.alert_smister_to_user_simulator import send_alert_to_user_simulator, send_evacuation_path_to_user_simulator
-from NotificationCenter.app.config.settings import ALERTED_USERS_QUEUE, USER_SIMULATOR_QUEUE
+from NotificationCenter.app.config.settings import ALERTED_USERS_QUEUE
 from NotificationCenter.app.config.logging import setup_logging
 
 logger = setup_logging("alerted_users_consumer", "NotificationCenter/logs/alertedUsersConsumer.log")
@@ -15,7 +12,6 @@ class AlertedUsersConsumer:
         logger.info("Alerted Users Consumer initialized")
 
     def start_consuming(self):
-        """Start consuming messages from the alerted users queue"""
         logger.info("Starting alerted users consumer")
         self.rabbitmq.consume_messages(
             queue_name=ALERTED_USERS_QUEUE,

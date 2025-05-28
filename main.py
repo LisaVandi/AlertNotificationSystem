@@ -6,8 +6,6 @@ import time
 import webbrowser
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-LOG_DIR = os.path.join(BASE_DIR, "logs")
-CHECK_INTERVAL = 2  
 shutdown_event = threading.Event()
 processes = {}
 
@@ -23,12 +21,12 @@ startup_sequence = [
 monitor_targets = [
     {
         "name": "NotificationCenter",
-        "log_file":  os.path.join(LOG_DIR, "alertConsumer.log"), 
+        "log_file":  os.path.join(BASE_DIR, "NotificationCenter", "logs", "alertConsumer.log"), 
         "trigger_text": '"msgType": "Cancel"'
     },
     {
         "name": "PositionManager",
-        "log_file":  os.path.join(LOG_DIR, "positionManager.log"),
+        "log_file":  os.path.join(BASE_DIR, "PositionManager", "logs", "positionManager.log"),
         "trigger_text": "FINISHED_POSITIONS"
     }
 ]
@@ -36,19 +34,13 @@ monitor_targets = [
 
 def run_process(name, cmd):
     print(f"[START] {name}")
-    
-    log_file_path = os.path.join(LOG_DIR, f"{name.replace(' ', '_').lower()}.log")
-    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-
-    with open(log_file_path, "w") as log_file:
-        proc = subprocess.Popen(
-            cmd,
-            cwd=BASE_DIR,
-            stdout=log_file,  
-            stderr=subprocess.STDOUT
-        )
-        processes[name] = proc
-
+    proc = subprocess.Popen(
+        cmd,
+        cwd=BASE_DIR,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    processes[name] = proc
         
 
 def monitor_logs():
@@ -64,12 +56,12 @@ def monitor_logs():
 
                 for line in new_lines:
                     if target["trigger_text"] in line:
-                        print(f"[TRIGGER] '{target['trigger_text']}' in {target['log_file']}")
+                        print(f"[TRIGGER] '{target['trigger_text']}' detected in {target['log_file']}")
                         shutdown_event.set()
                         return
             except FileNotFoundError:
                 pass  
-        time.sleep(CHECK_INTERVAL)
+        time.sleep(2)
 
 
 def shutdown_all():

@@ -58,7 +58,6 @@ class EvacuationConsumer:
                 logger.warning("Cannot determine floor level from node.")
                 return
 
-            # Call evacuation logic
             handle_evacuations(floor_level, nodes_in_alert, event_type)
 
             logger.info("Evacuation handled successfully.")

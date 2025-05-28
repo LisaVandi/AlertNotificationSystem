@@ -34,7 +34,7 @@ async def clear_positions_on_shutdown():
                 for r in rows
             ]
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            json_path = os.path.join(JSON_OUTPUT_FOLDER, f"user_historical_position_{ts}.json")
+            json_path = os.path.join(JSON_OUTPUT_FOLDER, "positions_storage", f"user_historical_position_{ts}.json")
             os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
             with open(json_path, "w", encoding="utf-8") as f:
@@ -42,6 +42,8 @@ async def clear_positions_on_shutdown():
 
             cur.execute("DELETE FROM current_position;")
             cur.execute("DELETE FROM user_historical_position;")
+            cur.execute("UPDATE nodes SET current_occupancy = 0;")
+            
             conn.commit()
         except Exception as e:
             print("Errore durante la pulizia:", e)
@@ -162,7 +164,7 @@ def get_map(
     image_width: int = Query(...),
     image_height: int = Query(...),
 ):
-    json_path = os.path.join(JSON_OUTPUT_FOLDER, f"floor{floor}.json")
+    json_path = os.path.join(JSON_OUTPUT_FOLDER, "floor_storage", f"floor{floor}.json")
     data = get_graph_json(floor, image_filename, image_width, image_height, output_path=json_path)
     return JSONResponse(content=data)
 

@@ -1,11 +1,9 @@
 from app.services.database_handler import get_db_connection
 
 def send_push_notification(user_id, message):
-    # Invia una notifica push all'utente (simulato con un print per il momento)
     print(f"Sending push notification to user {user_id}: {message}")
 
 def send_alert_notification(alert_message):
-    # Ottieni tutti gli utenti sottoscritti agli alert
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -18,7 +16,6 @@ def send_alert_notification(alert_message):
     
     conn.close()
 
-    # Invia notifiche push agli utenti sottoscritti
     for subscriber in subscribers:
         user_id, subscription_channel = subscriber
         if subscription_channel == 'push':

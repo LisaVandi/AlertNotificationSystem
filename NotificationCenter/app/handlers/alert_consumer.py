@@ -1,7 +1,5 @@
-"""
-Robust Alert Consumer with improved message handling.
-"""
 from typing import Dict, Any
+
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.config.settings import ALERT_QUEUE
 from NotificationCenter.app.handlers.alert_smister_to_user_simulator import send_alert_to_user_simulator

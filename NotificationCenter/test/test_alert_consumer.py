@@ -26,16 +26,13 @@ def test_start_consuming(alert_consumer, mock_rabbitmq_handler):
 def test_process_alert_valid(alert_consumer, mock_rabbitmq_handler):
     alert_data = {
         "id": "123",
+        "msgType": "Alert",
         "type": "fire",
         "severity": "high",
         "area": "zone1"
     }
-    with patch("NotificationCenter.app.handlers.alert_consumer.send_alert_to_map_manager") as mock_map_manager, \
-         patch("NotificationCenter.app.handlers.alert_consumer.send_alert_to_user_simulator") as mock_user_simulator, \
-         patch("NotificationCenter.app.handlers.alert_consumer.request_positions") as mock_request_positions:
+    with patch("NotificationCenter.app.handlers.alert_consumer.send_alert_to_user_simulator") as mock_user_simulator:
         
         alert_consumer.process_alert(alert_data)
         
-        mock_map_manager.assert_called_once_with(mock_rabbitmq_handler, alert_data)
         mock_user_simulator.assert_called_once_with(mock_rabbitmq_handler, alert_data)
-        mock_request_positions.assert_called_once_with(mock_rabbitmq_handler, alert_data.get("id"))
