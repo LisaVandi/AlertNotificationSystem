@@ -6,6 +6,7 @@ const nodeTypeSelect = document.getElementById("node-type");
 let currentClickCoords = null;
 let isAddingEdge = false;
 let selectedNodesForEdge = [];
+let selectedEdge = null;
 
 function initNodeTypes(types) {
   nodeTypeSelect.innerHTML = "";
@@ -199,11 +200,22 @@ async function loadGraph(mapObj) {
       const from = L.latLng(imageHeight - arc.y1, arc.x1);
       const to = L.latLng(imageHeight - arc.y2, arc.x2);
       
-      L.polyline([from, to], {
+      const polyline = L.polyline([from, to], {
         color: "#333333",
         weight: 3,
         opacity: 0.8,
       }).addTo(arcsLayer);
+
+      polyline.on("click", () => {
+        selectedEdge = arc;
+        document.getElementById("btnDisableEdge").disabled = false;
+
+        arcsLayer.eachLayer(layer => {
+          layer.setStyle({ color: "#333333", weight: 3 });
+        });
+        polyline.setStyle({ color: "#FF5722", weight: 5 });
+      });
+
     });
     
   } catch (e) {
@@ -285,7 +297,8 @@ async function init() {
     addClickListener(mapObj);
     window.addEventListener("resize", () => {
       maps.forEach(({ map, imageWidth, imageHeight }) => {
-        const container = document.getElementById(`map-${map.options.crs.code.split(':').pop()}`)?.parentElement;
+        // const container = document.getElementById(`map-${map.options.crs.code.split(':').pop()}`)?.parentElement;
+        const container = document.getElementById(`map-Simple`)?.parentElement;
         if (container) {
           const wrapper = container.querySelector(".map-wrapper");
           wrapper.style.aspectRatio = `${imageWidth} / ${imageHeight}`;
@@ -301,6 +314,42 @@ async function init() {
 
   document.getElementById("btnAddEdge")
     .addEventListener("click", toggleAddEdgeMode);
+
+  document.getElementById("btnDisableEdge").addEventListener("click", async () => {
+  if (!selectedEdge) {
+    alert("Please select an edge first.");
+    return;
+  }
+
+  const btn = document.getElementById("btnDisableEdge");
+  btn.disabled = true;
+  btn.textContent = "Disabling...";
+
+  try {
+    const resp = await fetch("/api/disable-edge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arc_id: selectedEdge.arc_id }),
+    });
+
+    if (!resp.ok) throw new Error(`Error disabling edge: ${resp.status}`);
+
+    alert("Edge disabled successfully.");
+
+    selectedEdge = null;
+    btn.textContent = "Disable edge";
+
+    const mapObj = maps.find(m => m.floor === activeFloor);
+    if (mapObj) await loadGraph(mapObj);
+
+    btn.disabled = true;
+  } catch (err) {
+    alert("Failed to disable edge: " + err.message);
+    btn.disabled = false;
+    btn.textContent = "Disable edge";
+  }
+});
+
   document.getElementById("btnUpdateGraph")
     .addEventListener("click", async () => {
       await fetch("/api/reload-graph", { method: "POST" });
@@ -309,8 +358,25 @@ async function init() {
         await loadGraph(mapObj);
       }
     });
+    
   document.getElementById("btnCancelNodeType")
     .addEventListener("click", hideNodeTypeSelector);
+
+  document.getElementById("btnConfiguration").addEventListener("click", async () => {
+    if (!confirm("Are you sure to complete the configuration and start the full system?")) return;
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+    try {
+      const resp = await fetch("/api/configuration-completed", { method: "POST" });
+      if (!resp.ok) throw new Error("Failed to notify configuration completion");
+      alert("Configuration completed! The full system will start shortly.");
+      btn.style.display = 'none';  
+    } catch (e) {
+        alert("Error: " + e.message);
+         btn.disabled = false;
+        btn.textContent = "Configuration completed";      
+      }
+    });
 }
 
 init().catch(err => console.error("Error in init():", err));
