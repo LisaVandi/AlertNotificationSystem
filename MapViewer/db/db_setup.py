@@ -183,16 +183,51 @@ def create_tables():
         $$ LANGUAGE plpgsql;
 
 
-    ''')
-
-    # Trigger to update node occupancy on change to current_position
+    ''')   
+    
     cursor.execute('''
         DROP TRIGGER IF EXISTS trg_update_node_occupancy ON current_position;
+        DROP FUNCTION IF EXISTS update_node_occupancy();
+        
+        CREATE OR REPLACE FUNCTION update_node_occupancy_incremental()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            IF TG_OP = 'UPDATE' THEN
+                IF OLD.node_id IS NOT NULL AND OLD.node_id <> NEW.node_id THEN
+                    UPDATE nodes
+                    SET current_occupancy = GREATEST(current_occupancy - 1, 0)
+                    WHERE node_id = OLD.node_id;
+                END IF;
+                IF NEW.node_id IS NOT NULL AND OLD.node_id <> NEW.node_id THEN
+                    UPDATE nodes
+                    SET current_occupancy = current_occupancy + 1
+                    WHERE node_id = NEW.node_id;
+                END IF;
+
+            ELSIF TG_OP = 'INSERT' THEN
+                IF NEW.node_id IS NOT NULL THEN
+                    UPDATE nodes
+                    SET current_occupancy = current_occupancy + 1
+                    WHERE node_id = NEW.node_id;
+                END IF;
+
+            ELSIF TG_OP = 'DELETE' THEN
+                IF OLD.node_id IS NOT NULL THEN
+                    UPDATE nodes
+                    SET current_occupancy = GREATEST(current_occupancy - 1, 0)
+                    WHERE node_id = OLD.node_id;
+                END IF;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+
         CREATE TRIGGER trg_update_node_occupancy
         AFTER INSERT OR UPDATE OR DELETE ON current_position
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION update_node_occupancy();
-    ''')    
+        FOR EACH ROW
+        EXECUTE FUNCTION update_node_occupancy_incremental();
+    ''')
 
     conn.commit()
     cursor.close()

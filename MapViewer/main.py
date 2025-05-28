@@ -20,7 +20,7 @@ from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
 from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 
-async def clear_positions_on_shutdown():
+async def clear_positions_on_startup():
     loop = asyncio.get_event_loop()
 
     def db_cleanup():
@@ -46,7 +46,7 @@ async def clear_positions_on_shutdown():
             
             conn.commit()
         except Exception as e:
-            print("Errore durante la pulizia:", e)
+            print("Error while cleaning:", e)
             conn.rollback()
         finally:
             cur.close()
@@ -54,14 +54,11 @@ async def clear_positions_on_shutdown():
 
     await loop.run_in_executor(None, db_cleanup)
 
-# Definisci lifespan handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Codice da eseguire all'avvio (opzionale)
+    # Clear positions on startup
+    await clear_positions_on_startup()
     yield
-    # Codice da eseguire alla terminazione (shutdown)
-    await clear_positions_on_shutdown()
-
 
 app = FastAPI(lifespan=lifespan)
 

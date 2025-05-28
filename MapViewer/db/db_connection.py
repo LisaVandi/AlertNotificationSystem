@@ -13,10 +13,10 @@ Returns a connection object if successful, or logs an error and returns None if 
 import psycopg2
 import logging
 from MapViewer.app.config.settings import DATABASE_CONFIG
+from NotificationCenter.app.config.logging import setup_logging
 
 # Logging configuration
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = setup_logging("MapViewer_dbconnection", "MapViewer/logs/dbWriter.log")
 
 # Function to create a database connection
 def create_connection():
