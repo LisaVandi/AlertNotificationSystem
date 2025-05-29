@@ -1,11 +1,14 @@
-from typing import List, Optional
+from typing import List
 import yaml
+import psycopg2
 
 from MapManager.app.config.settings import PATHFINDING_CONFIG
+from MapManager.app.services.db_reader import get_arc_final_node
 from MapManager.app.services.path_calculator import find_shortest_path_to_exit
-from MapViewer.app.services.graph_manager import graph_manager
 from MapManager.app.services.db_writer import update_node_evacuation_path
 from MapManager.app.config.logging import setup_logging
+from MapViewer.app.services.graph_manager import graph_manager
+from MapViewer.app.config.settings import DATABASE_CONFIG
 
 logger = setup_logging("evacuation_manager", "MapManager/logs/evacuationManager.log")
 
@@ -13,6 +16,8 @@ CONFIG_PATH = "PositionManager/config/config.yaml"
 with open(CONFIG_PATH, "r") as f:
     emergency_config = yaml.safe_load(f)
 logger.info(f"Loaded emergency types: {list(emergency_config.get('emergencies', {}).keys())}")
+
+outdoor_events = {"Earthquake", "Hazardous Material", "Severe Weather", "Power Outage"}
 
 def initialize_evacuation_paths(floor_level: int, event_type: str):
     logger.info(f"Initializing evacuation paths for floor {floor_level} with event {event_type}")
@@ -27,7 +32,28 @@ def initialize_evacuation_paths(floor_level: int, event_type: str):
         logger.warning(f"No safe nodes found for initialization on floor {floor_level} with event {event_type}")
         return
 
-    for node_id in G.nodes():
+    for node_id, data in G.nodes(data=True):
+        if event_type in outdoor_events and data.get("node_type") == "outdoor":
+            update_node_evacuation_path(node_id, [])
+            logger.info(f"Node {node_id} is already outdoor; no path needed.")
+            continue
+        
+        if event_type == "Flood" and data.get("node_type") == "stairs" and data.get("floor_level") == 0:
+            update_node_evacuation_path(node_id, [])
+            logger.info(f"Node {node_id} is already stairs at floor 0; no path needed.")
+            continue
+        
+        if event_type == "Fire":
+            cfg = emergency_config["emergencies"]["Fire"]["danger_zone"]
+            # if the node is already outside the danger zone, skip
+            if not (cfg["x1"] <= data["x"] <= cfg["x2"]
+                    and cfg["y1"] <= data["y"] <= cfg["y2"]
+                    and cfg["z1"] <= data["floor_level"] <= cfg["z2"]):
+                update_node_evacuation_path(node_id, [])
+                logger.info(f"Node {node_id} is already outside fire zone; skipping.")
+                continue
+
+        
         path = find_shortest_path_to_exit(G, node_id, safe_nodes)
         if path is None:
             logger.warning(f"[Init] No path (None) for node {node_id}; skipping")
@@ -44,8 +70,6 @@ def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
         logger.info(f"(Flood) Safe nodes (stairs): {safe}")
         return safe
 
-    # Outdoor events
-    outdoor_events = {"Earthquake", "Hazardous Material", "Severe Weather", "Power Outage"}
     if event_type in outdoor_events:
         safe = [n for n, d in G.nodes(data=True) if d.get("node_type") == "outdoor"]
         logger.info(f"({event_type}) Safe nodes (outdoor): {safe}")
@@ -67,6 +91,25 @@ def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
         logger.info(f"(Fire) Safe nodes outside danger zone: {safe}")
         return safe
 
+def get_saved_evacuation_path(node_id: int) -> List[int]:
+    """
+    Reads from the DB the list of arc_ids representing the evacuation path
+    already saved for the specified node.
+    """
+    try:
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        cur = conn.cursor()
+        cur.execute("SELECT evacuation_path FROM nodes WHERE node_id = %s", (node_id,))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        if result and result[0]:
+            return result[0]  
+        return []
+    except Exception as e:
+        logger.error(f"Error fetching saved evacuation path for node {node_id}: {e}")
+        return []
+    
 def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str):
     try:
         if event_type not in ("Flood", "Earthquake", "Hazardous Material", "Severe Weather", "Power Outage", "Fire"):
@@ -86,17 +129,54 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str)
 
         logger.debug(f"Computed safe_nodes={safe_nodes}")
         for source in alert_nodes:
+            if source in safe_nodes:
+                update_node_evacuation_path(source, [])
+                continue
+
             if source not in G:
                 logger.warning(f"Alert node {source} not in graph")
                 continue
+            
+            node_data = G.nodes[source]
+            if event_type in outdoor_events and node_data.get("node_type") == "outdoor":
+                update_node_evacuation_path(source, [])
+                logger.info(f"Node {source} is already outdoor; skipping path calculation.")
+                continue
+            
+            if event_type == "Flood" and node_data.get("node_type") == "stairs" and node_data.get("floor_level") == 0:
+                update_node_evacuation_path(source, [])
+                logger.info(f"Node {source} is already stairs at floor 0; no path needed.")
+                continue
+
+            if event_type == "Fire": 
+                cfg = emergency_config["emergencies"]["Fire"]["danger_zone"]
+                # if the alert node is already outside the danger zone, do not calculate or save anything
+                if not (cfg["x1"] <= node_data["x"] <= cfg["x2"]
+                        and cfg["y1"] <= node_data["y"] <= cfg["y2"]
+                        and cfg["z1"] <= node_data["floor_level"] <= cfg["z2"]):
+                    update_node_evacuation_path(source, [])
+                    logger.info(f"Node {source} is outside fire zone; skipping.")
+                    continue
+
+            path_saved = get_saved_evacuation_path(source)
+            if path_saved:
+                last_arc = path_saved[-1]
+                final_node = get_arc_final_node(last_arc)
+                if final_node is None:
+                    logger.warning(f"No final_node found for arc {last_arc}; recalculating anyway.")
+                elif source == final_node:
+                    logger.info(f"User at node {source} has already reached evacuation end; skipping recalculation.")
+                    continue
+
+            # Otherwise, calculate the shortest path
             path = find_shortest_path_to_exit(G, source, safe_nodes)
             if path is None:
                 logger.warning(f"No evacuation path found for node {source}; skipping DB update")
             else:
-                logger.debug(f"Path for node {source}: {path}")
                 update_node_evacuation_path(source, path)
                 logger.info(f"Saved evacuation path for node {source}: {path}")
-                        
+                    
     except Exception as e:
         logger.error(f"Error in handle_evacuations: {e}")
         raise
+    
