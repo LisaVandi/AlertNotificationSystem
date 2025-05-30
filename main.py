@@ -9,12 +9,12 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 shutdown_event = threading.Event()
 processes = {}
 
+ALERT_MANAGER_DELAY = 3
+
 startup_sequence = [
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
     ("NotificationCenter", ["python", "-m", "NotificationCenter.main"]),
-    ("AlertManager", ["python", "AlertManager/main.py"]),
-    ("UserSimulator", ["python", "UserSimulator/main.py"]),
-    ("PositionManager", ["python", "PositionManager/main.py"]),
+    ("UserSimulator", ["uvicorn", "UserSimulator.main:app", "--reload"]),
     ("MapManager", ["python", "-m", "MapManager.main"]),
 ]
 
@@ -41,7 +41,17 @@ def run_process(name, cmd):
         stderr=subprocess.DEVNULL
     )
     processes[name] = proc
-        
+
+def start_alert_manager():
+    """Funzione separata per avviare AlertManager con delay"""
+    time.sleep(ALERT_MANAGER_DELAY)
+    run_process("AlertManager", ["python", "AlertManager/main.py"])
+    print(f"[INFO] AlertManager started after {ALERT_MANAGER_DELAY} seconds delay")   
+    run_process("PositionManager", ["python", "PositionManager/main.py"])
+    print(f"[INFO] PositionManager started after {ALERT_MANAGER_DELAY} seconds delay")        
+     
+         
+
 
 def monitor_logs():
     last_positions = {t['name']: 0 for t in monitor_targets}
@@ -80,6 +90,12 @@ def main():
     for name, cmd in startup_sequence:
         run_process(name, cmd)
         time.sleep(1.5)
+
+    alert_manager_thread = threading.Thread(
+        target=start_alert_manager,
+        daemon=True
+    )
+    alert_manager_thread.start()
 
     try:
         webbrowser.open("http://127.0.0.1:8000")

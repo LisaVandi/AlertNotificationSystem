@@ -1,9 +1,18 @@
 rabbitmq:
-  url: "amqp://guest:guest@localhost:5672/"  # Connection URI for RabbitMQ (includes protocol, credentials, host, and port)
-  publish_queue: "position_queue"            # Queue where user position messages will be published
-  consume_queue: "user_simulator_queue"      # Queue to listen to for incoming control messages (e.g., "Alert", "Stop")
+  host: "localhost"
+  port: 5672
+  username: "guest"
+  password: "guest"
+  alert_queue: "user_simulator_queue"
+  evacuation_paths_queue: "evacuation_paths_queue"
+  position_queue: "position_queue"
 
-num_users: 20  # Number of users to simulate upon receiving an "Alert" message
+n_users: 20  # Number of users to simulate upon receiving an "Alert" message
+speed_normal: 300.0
+speed_alert: 600.0
+simulation_tick: 1.0
+timeout_after_stop: 60
+
 
 time_slots:
   # Each time slot defines a period in the day and a probability distribution

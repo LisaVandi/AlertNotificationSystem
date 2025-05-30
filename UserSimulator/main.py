@@ -1,15 +1,49 @@
-import os 
-import sys
-# Aggiungi la cartella principale (AlertNotificationSystem2) al sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import threading
+from fastapi import FastAPI
+from UserSimulator.config.config_loader import Config
+from UserSimulator.db.db import DB
+from UserSimulator.rabbitmq.rabbitmq_handler import RabbitMQHandler
+from UserSimulator.simulation.simulator import Simulator
+from UserSimulator.utils.api import app, simulator_instance
+from UserSimulator.utils.logger import logger
 
-from UserSimulator.simulation.event_listener import listen_for_events
-from utils.logger import logger  # Importa il logger
+config = Config("UserSimulator/config/config.yaml")
+db = DB(dsn="dbname=map_position_db user=postgres password=postgres host=localhost port=5432")
+simulator = None
+rabbitmq = None
 
-if __name__ == "__main__":
+@app.on_event("startup")
+def on_startup():
+    global simulator, rabbitmq, simulator_instance
+
+    logger.info("Starting UserSimulator service...")
+
     try:
-        logger.info("Avvio del listener per gli eventi.")
-        listen_for_events()  # Avvia l'ascolto degli eventi
-        logger.info("Ascolto eventi completato.")  # Questo verrà eseguito quando il listener si ferma
+        db.connect()
+        logger.info("Database connected.")
+        nodes = db.get_nodes()
+        arcs = db.get_arcs()
     except Exception as e:
-        logger.error(f"Errore durante l'esecuzione del listener: {e}")
+        logger.error(f"Database error: {e}", exc_info=True)
+        return
+    
+    simulator = Simulator(config, nodes, arcs)
+    simulator_instance = simulator
+
+    rabbitmq = RabbitMQHandler(config, simulator)
+    simulator.publisher = rabbitmq
+
+    try:
+        rabbitmq.connect()
+        logger.info("RabbitMQ connected.")
+    except Exception as e:
+        logger.error(f"RabbitMQ connection failed: {e}", exc_info=True)
+        return
+
+    # Start RabbitMQ consumer thread
+    threading.Thread(target=rabbitmq.start, daemon=True).start()
+    logger.info("RabbitMQ consumer thread started.")
+
+    # Start simulator loop thread
+    threading.Thread(target=simulator.run, daemon=True).start()
+    logger.info("Simulator thread started.")
