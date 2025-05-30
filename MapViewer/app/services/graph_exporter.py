@@ -30,12 +30,12 @@ def get_graph_json(floor_level: int, image_filename: str, image_width: int, imag
             })
 
         cur.execute("""
-            SELECT initial_node, final_node, x1, y1, x2, y2
+            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
             FROM arcs
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
             AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
         """, (floor_level, floor_level))
-        arcs = [{"from": row[0], "to": row[1], "x1": row[2], "y1": row[3], "x2": row[4], "y2": row[5]} for row in cur.fetchall()]
+        arcs = [{ "arc_id": row[0], "from": row[1], "to": row[2], "x1": row[3], "y1": row[4], "x2": row[5], "y2": row[6], "active": row[7]} for row in cur.fetchall()]
     except Exception as e:
         raise
 

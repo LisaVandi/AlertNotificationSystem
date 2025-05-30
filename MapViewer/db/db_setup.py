@@ -48,7 +48,8 @@ def create_tables():
             z INTEGER,
             node_id INTEGER,
             danger BOOLEAN DEFAULT FALSE,
-            PRIMARY KEY (user_id, node_id),
+            event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, node_id, event_time),
             FOREIGN KEY (node_id) REFERENCES nodes(node_id)
         );
     ''')

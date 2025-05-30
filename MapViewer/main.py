@@ -5,7 +5,7 @@ import networkx as nx
 import re
 import asyncio
 
-from fastapi import FastAPI, Body, Query, HTTPException
+from fastapi import FastAPI, Body, Query, HTTPException, status
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,13 +81,20 @@ conn = create_connection()
 create_tables()
 conn.close()
 
+@app.post("/api/configuration-completed")
+def configuration_completed():
+    flag_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config_completed.flag")
+    with open(flag_path, "w") as f:
+        f.write("done\n")
+    print("[INFO] Configuration completed flag file created.")
+    return JSONResponse({"message": "Configuration marked as completed"})
+
 def preload_graphs():
     conn = psycopg2.connect(**DATABASE_CONFIG)
     cur = conn.cursor()
     try:
         with graph_manager.lock:
             graph_manager.graphs.clear()
-            print("Grafo in memoria svuotato.")
 
         cur.execute("SELECT DISTINCT floor_level FROM nodes")
         floors = [row[0] for row in cur.fetchall()]
@@ -115,18 +122,19 @@ def preload_graphs():
                 })
 
             cur.execute("""
-                SELECT initial_node, final_node, x1, y1, x2, y2, active
+                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
                 FROM arcs
                 WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
                 AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
             """, (floor, floor))
             arc_rows = cur.fetchall()
-            print(f"Floor {floor}: caricati {len(nodes)} nodi e {len(arc_rows)} archi dal DB")
+            print(f"Floor {floor}: loaded {len(nodes)} nodes and {len(arc_rows)} arcs from DB")
 
             arcs = []
             for r in arc_rows:
-                initial_node, final_node, x1, y1, x2, y2, active = r
+                arc_id, initial_node, final_node, x1, y1, x2, y2, active = r
                 arcs.append({
+                    "arc_id": arc_id,
                     "initial_node": initial_node,
                     "final_node": final_node,
                     "x1": x1,
@@ -212,12 +220,12 @@ def get_graph(floor: int):
         nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
 
         cur.execute("""
-            SELECT initial_node, final_node, x1, y1, x2, y2, active
+            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
             FROM arcs
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
             AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
         """, (floor, floor))
-        arcs = [{"from": r[0], "to": r[1], "x1": r[2], "y1": r[3], "x2": r[4], "y2": r[5], "active": r[6]} for r in cur.fetchall()]
+        arcs = [{"arc_id": r[0], "from": r[1], "to": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7] } for r in cur.fetchall()]
           
         with graph_manager.lock:
             if floor not in graph_manager.graphs:
@@ -252,6 +260,27 @@ def reload_graph():
         graph_manager.graphs.clear()  
     preload_graphs()  
     return {"message": "Graph reloaded from database"}
+
+@app.post("/api/disable-edge")
+def disable_edge(data: dict = Body(...)):
+    arc_id = data.get("arc_id")
+    if arc_id is None:
+        raise HTTPException(status_code=400, detail="Missing arc_id")
+
+    conn = psycopg2.connect(**DATABASE_CONFIG)
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE arcs SET active = FALSE WHERE arc_id = %s RETURNING arc_id", (arc_id,))
+        updated = cur.fetchone()
+        if not updated:
+            raise HTTPException(status_code=404, detail="Arc not found")
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+    return {"message": f"Arc {arc_id} disabled"}
+
 
 @app.get("/")
 async def get_index():

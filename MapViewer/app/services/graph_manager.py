@@ -63,7 +63,6 @@ class GraphManager:
             conn.commit()
 
             with self.lock:
-                # Mantieni le coordinate in pixel per disegno frontend
                 G.add_node(node_id, x=x_px, y=y_px, floor_level=floor, node_type=node_type,
                            current_occupancy=0, capacity=cap)
 
@@ -84,13 +83,13 @@ class GraphManager:
         with self.lock:
             G = self.graphs.get(floor)
             if G is None:
-                raise ValueError(f"Grafo piano {floor} non trovato")
+                raise ValueError(f"Graph for floor {floor} not found")
 
             if node1 not in G.nodes or node2 not in G.nodes:
-                raise ValueError(f"Nodi {node1} o {node2} non trovati nel grafo")
+                raise ValueError(f"Nodes {node1} or {node2} not found in the graph")
 
             if G.has_edge(node1, node2):
-                return  # arco già presente
+                return 
 
             G.add_edge(node1, node2, active=True)
             self._persist_edge(node1, node2, floor)
@@ -101,7 +100,7 @@ class GraphManager:
         try:
             G = self.graphs.get(floor)
             if not G:
-                raise ValueError("Grafo non trovato")
+                raise ValueError("Graph not found.")
 
             x1_px = G.nodes[node1]['x']
             y1_px = G.nodes[node1]['y']

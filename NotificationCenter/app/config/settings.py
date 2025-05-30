@@ -5,8 +5,6 @@ RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 RABBITMQ_USERNAME = os.getenv("RABBITMQ_USERNAME", "guest")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
 
-FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "") # Firebase Cloud Messaging server key
-
 # Queue for receiving alerts from the Alert Manager to the Notification Center
 ALERT_QUEUE = "alert_queue"
 
