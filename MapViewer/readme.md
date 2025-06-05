@@ -5,6 +5,8 @@ DELETE FROM current_position;
 DELETE FROM nodes;
 ALTER SEQUENCE nodes_node_id_seq RESTART WITH 1;
 ALTER SEQUENCE arcs_arc_id_seq RESTART WITH 1;
+SELECT setval('nodes_node_id_seq', (SELECT MAX(node_id) FROM nodes));
+SELECT setval('arcs_arc_id_seq', (SELECT MAX(arc_id) FROM arcs));
 
 
 L’utente apre pagina: carichi grafo tramite REST e lo disegni.

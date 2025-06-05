@@ -12,7 +12,7 @@ def setup_logging(logger_name: str, log_file: str) -> logging.Logger:
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
 
-    handler = logging.FileHandler(log_file, mode='w')  
+    handler = logging.FileHandler(log_file, mode='a')  
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     handler.setLevel(logging.INFO)
