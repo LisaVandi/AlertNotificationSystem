@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import yaml
 import psycopg2
 
@@ -9,6 +9,8 @@ from MapManager.app.services.db_writer import update_node_evacuation_path
 from MapManager.app.config.logging import setup_logging
 from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG
+from MapManager.app.services.publisher import publish_paths_ready
+from NotificationCenter.app.config.settings import ACK_EVACUATION_QUEUE
 
 logger = setup_logging("evacuation_manager", "MapManager/logs/evacuationManager.log")
 
@@ -18,6 +20,7 @@ with open(CONFIG_PATH, "r") as f:
 logger.info(f"Loaded emergency types: {list(emergency_config.get('emergencies', {}).keys())}")
 
 outdoor_events = {"Earthquake", "Hazardous Material", "Severe Weather", "Power Outage"}
+
 
 def initialize_evacuation_paths(floor_level: int, event_type: str):
     logger.info(f"Initializing evacuation paths for floor {floor_level} with event {event_type}")
@@ -110,7 +113,7 @@ def get_saved_evacuation_path(node_id: int) -> List[int]:
         logger.error(f"Error fetching saved evacuation path for node {node_id}: {e}")
         return []
     
-def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str):
+def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str, rabbitmq_handler=None):
     try:
         if event_type not in ("Flood", "Earthquake", "Hazardous Material", "Severe Weather", "Power Outage", "Fire"):
             logger.error(f"Invalid event_type '{event_type}'")
@@ -175,6 +178,13 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str)
             else:
                 update_node_evacuation_path(source, path)
                 logger.info(f"Saved evacuation path for node {source}: {path}")
+                
+        if rabbitmq_handler:
+            try:
+                publish_paths_ready(rabbitmq_handler)
+                logger.info(f"Published 'paths_ready' su {ACK_EVACUATION_QUEUE}")
+            except Exception as e:
+                logger.error(f"Errore invio msg 'paths_ready': {e}")
                     
     except Exception as e:
         logger.error(f"Error in handle_evacuations: {e}")

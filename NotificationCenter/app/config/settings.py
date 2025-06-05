@@ -23,6 +23,9 @@ ALERTED_USERS_QUEUE = "alerted_users_queue"
 # Queue for sending evacuation paths from the Notification Center to the User Simulator
 EVACUATION_PATHS_QUEUE = "evacuation_paths_queue" 
 
+# Queue for acknowledging evacuation paths computed by the Map Manager
+ACK_EVACUATION_QUEUE = "ack_evacuation_computed"
+
 DATABASE_CONFIG = {
     "host": "localhost",
     "port": 5432,

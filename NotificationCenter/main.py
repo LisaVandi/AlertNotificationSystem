@@ -4,7 +4,7 @@ import time
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.handlers.alert_consumer import AlertConsumer
-from NotificationCenter.app.config.settings import ALERT_QUEUE, MAP_MANAGER_QUEUE, USER_SIMULATOR_QUEUE, POSITION_QUEUE, ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE, RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
+from NotificationCenter.app.config.settings import ALERT_QUEUE, MAP_MANAGER_QUEUE, USER_SIMULATOR_QUEUE, POSITION_QUEUE, ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE, ACK_EVACUATION_QUEUE, RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
 from NotificationCenter.app.config.logging import setup_logging, flush_logs, close_logging
 
 # logging configuration
@@ -27,7 +27,8 @@ def main():
 
     queues = [ALERT_QUEUE, MAP_MANAGER_QUEUE, 
                     USER_SIMULATOR_QUEUE, POSITION_QUEUE,
-                    ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE]
+                    ALERTED_USERS_QUEUE, EVACUATION_PATHS_QUEUE,
+                    ACK_EVACUATION_QUEUE]
     
     # Declare required queues
     for queue in queues:

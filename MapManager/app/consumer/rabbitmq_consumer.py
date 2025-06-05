@@ -58,7 +58,7 @@ class EvacuationConsumer:
                 logger.warning("Cannot determine floor level from node.")
                 return
 
-            handle_evacuations(floor_level, nodes_in_alert, event_type)
+            handle_evacuations(floor_level, nodes_in_alert, event_type, rabbitmq_handler=self.rabbitmq)
 
             logger.info("Evacuation handled successfully.")
 

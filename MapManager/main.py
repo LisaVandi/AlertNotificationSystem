@@ -1,5 +1,6 @@
-import os
-import logging
+import signal
+import sys
+import threading
 import psycopg2
 
 from MapManager.app.consumer.rabbitmq_consumer import EvacuationConsumer
@@ -10,7 +11,7 @@ from MapManager.app.config.settings import RABBITMQ_CONFIG
 from MapViewer.app.config.settings import DATABASE_CONFIG   
 from NotificationCenter.app.handlers.alerted_users_consumer import AlertedUsersConsumer
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
-
+from NotificationCenter.app.config.settings import ACK_EVACUATION_QUEUE
 logger = setup_logging("map_manager_main", "MapManager/logs/mapManager.log")
 
 def preload_graphs():
@@ -77,35 +78,118 @@ def preload_graphs():
     finally:
         cur.close()
         conn.close()
+        
+def run_evacuation_consumer():
+    """
+    Thread dedicato a EvacuationConsumer (consuma da MAP_MANAGER_QUEUE).
+    Ogni thread ha la propria connessione/canale RabbitMQ.
+    """
+    try:
+        rabbit1 = RabbitMQHandler(
+            host=RABBITMQ_CONFIG["host"],
+            port=RABBITMQ_CONFIG["port"],
+            username=RABBITMQ_CONFIG["username"],
+            password=RABBITMQ_CONFIG["password"]
+        )
+        logger.info("RabbitMQHandler (EvacuationConsumer) inizializzato")
+
+        ev_consumer = EvacuationConsumer(rabbit1)
+        ev_consumer.start_consuming()
+
+    except Exception as e:
+        logger.error(f"Errore in run_evacuation_consumer: {e}")
+        rabbit1.close()
+        raise
+
+def run_alerted_users_consumer():
+    """
+    Thread dedicato a AlertedUsersConsumer (consuma da ALERTED_USERS_QUEUE).
+    Ogni thread ha la propria connessione/canale RabbitMQ.
+    """
+    try:
+        rabbit2 = RabbitMQHandler(
+            host=RABBITMQ_CONFIG["host"],
+            port=RABBITMQ_CONFIG["port"],
+            username=RABBITMQ_CONFIG["username"],
+            password=RABBITMQ_CONFIG["password"]
+        )
+        logger.info("RabbitMQHandler (AlertedUsersConsumer) inizializzato")
+        
+        au_consumer = AlertedUsersConsumer(rabbit2)
+        au_consumer.start_consuming()
+
+    except Exception as e:
+        logger.error(f"Errore in run_alerted_users_consumer: {e}")
+        rabbit2.close()
+        raise
+
+def graceful_shutdown(signum, frame):
+    logger.info("Shutdown initiated, exiting...")
+    sys.exit(0)
 
 def main():
     logger.info("Starting MapManager service")
     preload_graphs()
 
-    # Initialize default evacuation paths for each floor graph
+    # Inizializzazione delle evacuation path di default (evento “Earthquake”)
     for floor in graph_manager.graphs.keys():
         initialize_evacuation_paths(floor, event_type="Earthquake")
     logger.info("Initialization completed. MapManager ready and listening.")
 
-    try:
-        rabbitmq_handler = RabbitMQHandler(
-            host=RABBITMQ_CONFIG["host"],
-            port=RABBITMQ_CONFIG["port"],
-            username=RABBITMQ_CONFIG["username"],
-            password=RABBITMQ_CONFIG["password"])
-        logger.info("RabbitMQ consumer initialization for evacuations")
-        
-        # Consumer for ALERT_QUEUE
-        alert_consumer = EvacuationConsumer(rabbitmq_handler)
-        alert_consumer.start_consuming()
-            
-        # Consumer for ALERTED_USERS_QUEUE 
-        alerted_users_consumer = AlertedUsersConsumer(rabbitmq_handler)
-        alerted_users_consumer.start_consuming()
-    
-    except Exception as e:
-        logger.error(f"Error during consumer initialization: {str(e)}")
-        raise
+    # Installa il signal handler per Ctrl+C / SIGTERM
+    signal.signal(signal.SIGINT, graceful_shutdown)
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+
+    # ─── Lancio dei due thread consumer ───
+    t1 = threading.Thread(
+        target=run_evacuation_consumer,
+        name="Thread-EvacuationConsumer",
+        daemon=True
+    )
+    t2 = threading.Thread(
+        target=run_alerted_users_consumer,
+        name="Thread-AlertedUsersConsumer",
+        daemon=True
+    )
+
+    t1.start()
+    t2.start()
+
+    logger.info("Entrambi i consumer sono stati avviati in thread separati.")
+    t1.join()
+    t2.join()
 
 if __name__ == "__main__":
     main()
+
+# def main():
+#     logger.info("Starting MapManager service")
+#     preload_graphs()
+
+#     # Initialize default evacuation paths for each floor graph
+#     for floor in graph_manager.graphs.keys():
+#         initialize_evacuation_paths(floor, event_type="Earthquake")
+#     logger.info("Initialization completed. MapManager ready and listening.")
+
+#     try:
+#         rabbitmq_handler = RabbitMQHandler(
+#             host=RABBITMQ_CONFIG["host"],
+#             port=RABBITMQ_CONFIG["port"],
+#             username=RABBITMQ_CONFIG["username"],
+#             password=RABBITMQ_CONFIG["password"])
+#         logger.info("RabbitMQ consumer initialization for evacuations")
+        
+#         # Consumer for ALERT_QUEUE
+#         alert_consumer = EvacuationConsumer(rabbitmq_handler)
+#         alert_consumer.start_consuming()
+            
+#         # Consumer for ALERTED_USERS_QUEUE 
+#         alerted_users_consumer = AlertedUsersConsumer(rabbitmq_handler)
+#         alerted_users_consumer.start_consuming()
+    
+#     except Exception as e:
+#         logger.error(f"Error during consumer initialization: {str(e)}")
+#         raise
+
+# if __name__ == "__main__":
+#     main()
