@@ -27,7 +27,7 @@ def setup_logging(logger_name: str, log_file: str) -> logging.Logger:
         logger.removeHandler(handler)
 
     # Configure a file handler to write to the specified file
-    handler = logging.FileHandler(log_file, mode='w') 
+    handler = logging.FileHandler(log_file, mode='a') 
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     handler.setLevel(logging.INFO)

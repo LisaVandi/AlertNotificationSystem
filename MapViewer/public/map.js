@@ -212,8 +212,8 @@ async function loadGraph(mapObj) {
 
         arcsLayer.eachLayer(layer => {
           layer.setStyle({ color: "#333333", weight: 3 });
-        });
-        polyline.setStyle({ color: "#FF5722", weight: 5 });
+        })
+        polyline.setStyle({ color: "#333333", weight: 5 });
       });
 
     });
@@ -363,6 +363,7 @@ async function init() {
     .addEventListener("click", hideNodeTypeSelector);
 
   document.getElementById("btnConfiguration").addEventListener("click", async () => {
+    const btn = document.getElementById("btnConfiguration");
     if (!confirm("Are you sure to complete the configuration and start the full system?")) return;
     btn.disabled = true;
     btn.textContent = "Processing...";
