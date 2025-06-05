@@ -71,30 +71,22 @@ class Simulator:
             logger.critical(f" User initialization failed: {str(e)}", exc_info=True)
             raise
 
+    
     def tick(self):
         dt = self.config.simulation_tick
         logger.debug(f"Tick started (dt={dt}s)")
 
-        if self.state == "salvo" and self.stop_timer:
-            self._check_stop_resume()
-
         for user_id, user in self.users.items():
             prev_pos = (user.x, user.y, user.z)
-            user.update_position(self.arcs, self.nodes, dt)
+            completed = user.update_position(self.arcs, self.nodes, dt)
             new_pos = (user.x, user.y, user.z)
-
+            
             # Aggiorno sempre il vettore delle posizioni
-            self.users_positions[user_id] = {
-                "user_id": user_id,
-                "x": int(round(user.x)),
-                "y": int(round(user.y)),
-                "z": int(round(user.z)),
-                "node_id": user.current_node,
-                "state": user.state
-            }
+            self.users_positions[user_id] = user.get_position_message()
 
-            # SOLO in stato ALLERTA, se l'utente si è mosso e lo stato è "allerta", pubblico la nuova posizione
-            if self.state == "allerta" and user.state == "allerta" and prev_pos != new_pos and self.publisher:
+            # Pubblico solo se in allerta e se la posizione è cambiata
+            if user.state == "allerta" and (prev_pos != new_pos or user.blocked) and self.publisher:
+                user.event = self.alert_event
                 try:
                     position_msg = user.get_position_message()
                     self.publisher.publish_position(position_msg)
@@ -112,18 +104,33 @@ class Simulator:
             return
 
         self.state = "allerta"
+        
         self.alert_event = alert_msg.get('info', [{}])[0].get('event', 'unknown')
         logger.warning(f"ALERT TRIGGERED: {self.alert_event}")
 
+        evacuation_paths = alert_msg.get('evacuation_paths', {})  # es: {user_id: [arc_ids]}
+
         affected = 0
         for user in self.users.values():
-            if user.state != "allerta":
+            if user.state != "in_attesa_percorso":
                 affected += 1
-                user.state = "allerta"
-                user.speed = user.speed_alert
+                user.state = "in_attesa_percorso"
+                user.speed = 0
                 user.event = self.alert_event
 
-            # Invia la posizione del singolo utente sulla coda RabbitMQ
+            # Se c'è un percorso di evacuazione specifico per l'utente, impostalo
+            path = evacuation_paths.get(str(user.user_id), [])
+            if path:
+                user.set_evacuation_path(path)
+                user.state = "allerta"
+                user.speed = user.speed_alert
+            elif path == [] and evacuation_paths:  
+                # Se c'è una mappa ma percorso vuoto, significa utente salvo
+                user.mark_as_salvo()
+                self.users_positions[user.user_id] = user.get_position_message()
+                logger.info(f"After mark_as_salvo, user {user.user_id} state: {user.state}")
+            
+            
             if self.publisher:
                 try:
                     position_msg = {
@@ -131,7 +138,7 @@ class Simulator:
                         "x": user.x,
                         "y": user.y,
                         "z": user.z,
-                        "node_id": user.current_node,
+                        "node_id": getattr(user, 'current_node', None),  
                         "event": self.alert_event
                     }
                     self.publisher.publish_position(position_msg)

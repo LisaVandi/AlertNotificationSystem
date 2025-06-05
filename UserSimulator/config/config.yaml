@@ -7,9 +7,9 @@ rabbitmq:
   evacuation_paths_queue: "evacuation_paths_queue"
   position_queue: "position_queue"
 
-n_users: 20  # Number of users to simulate upon receiving an "Alert" message
-speed_normal: 300.0
-speed_alert: 600.0
+n_users: 5  # Number of users to simulate upon receiving an "Alert" message
+speed_normal: 100.0
+speed_alert: 350.0
 simulation_tick: 1.0
 timeout_after_stop: 60
 

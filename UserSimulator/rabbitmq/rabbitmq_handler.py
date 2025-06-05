@@ -103,6 +103,7 @@ class RabbitMQHandler:
 
             if not isinstance(data, list):
                 logger.warning("Expected a list of evacuation paths, but got something else.")
+                ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
             logger.info(f"Users currently loaded: {list(self.simulator.users.keys())}")
@@ -124,10 +125,14 @@ class RabbitMQHandler:
                     user.set_evacuation_path(evacuation_path)
                 else:
                     logger.warning(f"User ID {user_id} not found in users")
+                    
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             logger.error(f"Failed to process evacuation path message: {e}")
             logger.debug(traceback.format_exc())
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
 
 
     def check_connection(self):

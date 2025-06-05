@@ -3,254 +3,276 @@ from UserSimulator.utils.logger import logger
 
 class User:
     def __init__(self, user_id, node, speed_normal, speed_alert):
-        """
-        Initialize the User.
-
-        Args:
-            user_id (int): Unique user identifier
-            node (dict): The current node where the user is located (dictionary with node info)
-            speed_normal (float): Speed in normal state
-            speed_alert (float): Speed in alert state
-        """
-        self.waiting_for_path = False
-        self.path_wait_timer = 0
-        self.MAX_WAIT_TIME = 10
-        
         self.user_id = user_id
-        self.current_node = node['node_id']  # Node ID where user currently is
-        # Start position randomly inside the node boundaries
+        self.current_node = node['node_id']
         self.x = np.random.uniform(node['x1'], node['x2'])
         self.y = np.random.uniform(node['y1'], node['y2'])
         self.z = np.random.uniform(node['z1'], node['z2'])
-
-        self.state = "normale"  # normale, allerta, salvo
+        
+        self.state = "normale"  # "normale", "allerta", "salvo"
         self.speed_normal = speed_normal
         self.speed_alert = speed_alert
         self.speed = speed_normal
-
-        self.event = None  # Current event string if in alert
-
-        self.evacuation_path = []  # List of arc_ids to traverse
-        self.moving_along_arc = False  # Are we currently moving along an arc?
-        self.arc_progress = 0.0  # Progress along the current arc [0,1]
-
-        logger.info(
-            f"[INIT] User {self.user_id} initialized in node {self.current_node} at pos=({self.x:.2f}, {self.y:.2f}, {self.z:.2f}), state={self.state}"
-        )
+        
+        self.event = None
+        
+        self.evacuation_path = []  # lista di arc_id
+        self.moving_along_arc = False
+        self.arc_progress = 0.0
+        self.movement_direction = 1  # +1 o -1 per indicare direzione su arco
+        self.blocked = False
+        
+        logger.info(f"[INIT] User {self.user_id} initialized at node {self.current_node} pos=({self.x:.2f},{self.y:.2f},{self.z:.2f}) state={self.state}")
 
     def get_position_message(self):
-        """
-        Restituisce il messaggio da pubblicare con la posizione e lo stato.
-        Il campo 'event' è sempre quello dell'allerta ricevuta (self.event).
-        """
         return {
             "user_id": self.user_id,
             "x": int(round(self.x)),
             "y": int(round(self.y)),
             "z": int(round(self.z)),
             "node_id": self.current_node,
-            "event": self.event  # <-- sempre lo stesso valore impostato dall'allerta
+            "event": self.event
         }
 
     def update_position(self, arcs, nodes, dt):
-        """
-        Update user's position based on current state.
+        try:
+            if self.state == "in_attesa_percorso":
+                # Utente fermo, non si muove finché non riceve percorso
+                logger.debug(f"User {self.user_id} in ATTESA PERCORSO, fermo")
+                return False
 
-        Args:
-            arcs (list): List of arcs in the environment
-            nodes (list): List of nodes in the environment
-            dt (float): Time delta since last update (seconds)
-        """
-        logger.info(f"User {self.user_id} state={self.state} updating position")
+            elif self.state == "allerta":
+                if self.evacuation_path:
+                    completed = self._move_along_path(arcs, nodes, dt)
+                    if completed:
+                        self.mark_as_salvo()
+                    return completed
+                else:
+                    # In allerta ma senza percorso, utente fermo (o si può modificare se vuoi)
+                    logger.debug(f"User {self.user_id} in ALLERTA state without path, not moving")
+                    return False
+            
+            elif self.state == "normale":
+                self._move_free(arcs, nodes, dt)
+                return False
+            
+            else:
+                # Stato salvo o altri, non si muove
+                logger.debug(f"User {self.user_id} in state {self.state}, no movement")
+                return False
 
-        if self.state == "allerta":
-            if self.speed == 0:
-                # User fermo perché nessun percorso assegnato
-                logger.debug(f"User {self.user_id} in ALERT but speed=0, not moving")
-                return
-            # muovi lungo percorso di evacuazione
-            self._move_along_path(arcs, dt)
-        elif self.state == "salvo":
-            # fermo in posizione attuale (speed=0)
-            logger.debug(f"User {self.user_id} in SALVO, not moving")
-            return
-        else:
-            # stato normale, movimento casuale o normale
-            self._move_free(arcs, nodes, dt)
-        
+        except Exception as e:
+            logger.error(f"User {self.user_id} update_position error: {e}", exc_info=True)
+            return False
+
 
     def _move_free(self, arcs, nodes, dt):
-        """
-        Move randomly in 3D space with realistic step based on speed and dt.
-        If movement causes change of node, check arc validity.
-        """
-        distance = self.speed * dt  # distanza percorribile in dt
-
-        # Direzione casuale nel 3D
+        distance = self.speed * dt
         direction = np.random.normal(size=3)
         direction /= np.linalg.norm(direction)
-
-        dx, dy, dz = direction * distance
-        new_x = self.x + dx
-        new_y = self.y + dy
-        new_z = self.z + dz
-
-        # Trova il nodo in cui finirebbe il nuovo punto
-        target_node = self._find_node_containing_point(new_x, new_y, new_z, nodes)
-
+        
+        new_pos = np.array([self.x, self.y, self.z]) + direction * distance
+        target_node = self._find_node_containing_point(*new_pos, nodes)
+        
         if target_node:
-            # Movimento interno allo stesso nodo o spostamento valido
-            if target_node['node_id'] == self.current_node or \
-            self._is_connected(self.current_node, target_node['node_id'], arcs):
-                logger.info(f"User {self.user_id} moved from node {self.current_node} to node {target_node['node_id']}")
+            if target_node['node_id'] == self.current_node or self._is_connected(self.current_node, target_node['node_id'], arcs):
                 self.current_node = target_node['node_id']
-                self.x, self.y, self.z = new_x, new_y, new_z
+                self.x, self.y, self.z = new_pos
+                logger.debug(f"User {self.user_id} moved free to node {self.current_node}")
             else:
-                logger.info(f"User {self.user_id} blocked: no arc from {self.current_node} to {target_node['node_id']}")
+                logger.debug(f"User {self.user_id} blocked: no arc from {self.current_node} to {target_node['node_id']}")
         else:
             logger.debug(f"User {self.user_id} move out of bounds prevented")
 
     def _find_node_containing_point(self, x, y, z, nodes):
         for node in nodes:
-            if node['x1'] <= x <= node['x2'] and \
-            node['y1'] <= y <= node['y2'] and \
-            node['z1'] <= z <= node['z2']:
+            if node['x1'] <= x <= node['x2'] and node['y1'] <= y <= node['y2'] and node['z1'] <= z <= node['z2']:
                 return node
         return None
 
     def _is_connected(self, node_a, node_b, arcs):
         for arc in arcs:
             if (arc['initial_node'] == node_a and arc['final_node'] == node_b) or \
-            (arc['initial_node'] == node_b and arc['final_node'] == node_a):
+               (arc['initial_node'] == node_b and arc['final_node'] == node_a):
                 return True
         return False
 
-    def _move_along_path(self, arcs, dt):
-        """
-        Move user along the evacuation path arcs progressively.
+    def find_arc_by_id(self, arcs, arc_id):
+        for arc in arcs:
+            if arc['arc_id'] == arc_id:
+                return arc
+        return None
 
-        Args:
-            arcs (list): list of all arcs (dict with arc info)
-            dt (float): time delta (seconds)
-        """
-        
+    def arc_length(self, arc):
+        start = np.array([arc['x1'], arc['y1'], arc['z1']])
+        end = np.array([arc['x2'], arc['y2'], arc['z2']])
+        return np.linalg.norm(end - start)
+
+    def position_along_arc(self, arc, progress, reverse=False):
+        start = np.array([arc['x1'], arc['y1'], arc['z1']])
+        end = np.array([arc['x2'], arc['y2'], arc['z2']])
+        if reverse:
+            start, end = end, start
+        return start + progress * (end - start)
+
+    def is_position_inside_node(self, pos, node):
+        x, y, z = pos
+        return (node['x1'] <= x <= node['x2'] and
+                node['y1'] <= y <= node['y2'] and
+                node['z1'] <= z <= node['z2'])
+
+    def _move_along_path(self, arcs, nodes, dt):
         if not self.evacuation_path:
-            # NON chiamare clear_evacuation_path per timeout
-            # Mantieni l'utente in stato 'allerta' finché non arriva un percorso valido
-            logger.info(f"User {self.user_id} has no evacuation path but remains in ALERT state")
-            return
-
-        
-        # Se arriva qui, c'è un percorso da seguire
-        self.waiting_for_path = False
-        self.path_wait_timer = 0
-    
-    # ... (resto del metodo esistente)
-
-        current_arc_id = self.evacuation_path[0]
-        arc = next((a for a in arcs if a['arc_id'] == current_arc_id), None)
-
-        if arc is None:
-            logger.warning(f"User {self.user_id}: arc {current_arc_id} not found in arcs list")
-            # Remove the missing arc and try next
-            self.evacuation_path.pop(0)
+            logger.debug(f"User {self.user_id} evacuation_path vuota, utente già salvo o non in movimento")
             self.moving_along_arc = False
-            self.arc_progress = 0.0
-            return
-
-        # If not currently moving along an arc, initialize progress
+            return False
+        
         if not self.moving_along_arc:
             self.moving_along_arc = True
             self.arc_progress = 0.0
-            logger.info(f"User {self.user_id} started moving along arc {current_arc_id}")
 
-        # Determine direction based on current node and arc nodes
-        if self.current_node == arc['initial_node']:
-            start_pos = np.array([arc['x1'], arc['y1'], arc['z1']])
-            end_pos = np.array([arc['x2'], arc['y2'], arc['z2']])
-            next_node = arc['final_node']
-        elif self.current_node == arc['final_node']:
-            # Reverse direction on the same arc
-            start_pos = np.array([arc['x2'], arc['y2'], arc['z2']])
-            end_pos = np.array([arc['x1'], arc['y1'], arc['z1']])
-            next_node = arc['initial_node']
-        else:
-            logger.warning(f"User {self.user_id} current node {self.current_node} not connected to arc {current_arc_id}")
-            # Drop this arc and reset movement
-            self.evacuation_path.pop(0)
+        current_arc_id = self.evacuation_path[0]
+        arc = self.find_arc_by_id(arcs, current_arc_id)
+        if arc is None:
+            logger.warning(f"User {self.user_id} arc {current_arc_id} not found")
             self.moving_along_arc = False
-            self.arc_progress = 0.0
-            return
-
-        arc_length = np.linalg.norm(end_pos - start_pos)
-        if arc_length == 0:
-            logger.warning(f"User {self.user_id} arc {current_arc_id} has zero length")
-            self.evacuation_path.pop(0)
-            self.moving_along_arc = False
-            self.arc_progress = 0.0
-            return
-
-        # Increment progress along arc based on speed and dt
-        self.arc_progress += (self.speed * dt) / arc_length
-
-        if self.arc_progress >= 1.0:
-            # User reached the end of the arc (the next node)
-            self.current_node = next_node
-            self.x, self.y, self.z = end_pos
-            logger.info(f"User {self.user_id} reached node {self.current_node} via arc {current_arc_id}")
-
-            # Remove the arc from the evacuation path
-            self.evacuation_path.pop(0)
-
-            # Reset movement state on arc
-            self.moving_along_arc = False
-            self.arc_progress = 0.0
-
-            # If no more arcs, clear path and return to normal state
-            if not self.evacuation_path:
-                self.clear_evacuation_path()
-        else:
-            # User is still moving along the arc, interpolate position
-            pos = start_pos + self.arc_progress * (end_pos - start_pos)
-            self.x, self.y, self.z = pos
-            logger.info(f"User {self.user_id} moved along arc {current_arc_id} to pos ({self.x:.2f}, {self.y:.2f}, {self.z:.2f})")
-
-    def set_evacuation_path(self, arc_list):
-        """
-        Set a new evacuation path for the user.
-        If arc_list is empty, clear the evacuation path and return to normal.
-        Otherwise, update the path and set state to alert.
-        """
-        if not arc_list:
-            # Se la nuova lista è vuota significa fine evacuazione, torna normale
-            self.clear_evacuation_path()
-            self.speed = 0
-            self.state = "allerta"
-            logger.info(f"User {self.user_id} received empty path - cleared evacuation and returned to NORMAL")
-            return
+            return False
         
-        # Altrimenti aggiorna il percorso (anche se c'era un percorso precedente)
-        self.evacuation_path = arc_list
+        # Verifico se current_node è uno dei nodi dell'arco
+        if self.current_node not in (arc['initial_node'], arc['final_node']):
+            # Provo a forzare posizione se vicino ai nodi arco
+            pos = np.array([self.x, self.y, self.z])
+            p1 = np.array([arc['x1'], arc['y1'], arc['z1']])
+            p2 = np.array([arc['x2'], arc['y2'], arc['z2']])
+            dist_to_p1 = np.linalg.norm(pos - p1)
+            dist_to_p2 = np.linalg.norm(pos - p2)
+            snap_threshold = 5.0
+            
+            if min(dist_to_p1, dist_to_p2) < snap_threshold:
+                self.current_node = arc['initial_node'] if dist_to_p1 < dist_to_p2 else arc['final_node']
+                logger.debug(f"User {self.user_id} snapped to node {self.current_node} on arc {current_arc_id}")
+            else:
+                logger.warning(f"User {self.user_id} current_node {self.current_node} not connected to arc {current_arc_id}, waiting for update")
+                self.moving_along_arc = False
+                self.blocked =True
+                
+                return False
+            
+
+        # Determino la direzione: se sono su initial_node, muovo progress da 0->1; se su final_node, da 1->0
+        reverse = (self.current_node == arc['final_node'])
+        self.movement_direction = -1 if reverse else 1
+
+        length = self.arc_length(arc)
+        if length == 0:
+            logger.warning(f"User {self.user_id} arc {current_arc_id} zero length")
+            self.moving_along_arc = False
+            return False
+
+        # Aggiorno progress tenendo conto della direzione
+        self.arc_progress += (self.speed * dt) / length * self.movement_direction
+        self.arc_progress = max(0.0, min(1.0, self.arc_progress))
+
+        pos = self.position_along_arc(arc, self.arc_progress, reverse)
+        node = next(n for n in nodes if n['node_id'] == self.current_node)
+        if not self.is_position_inside_node(pos, node):
+            # Correggo posizione fuori nodo
+            pos = np.array([
+                np.clip(pos[0], node['x1'], node['x2']),
+                np.clip(pos[1], node['y1'], node['y2']),
+                np.clip(pos[2], node['z1'], node['z2']),
+            ])
+        self.x, self.y, self.z = pos
+        self.blocked = False
+
+        logger.debug(f"User {self.user_id} moved along arc {current_arc_id} progress={self.arc_progress:.2f}")
+
+        if (self.movement_direction == 1 and self.arc_progress >= 1.0) or (self.movement_direction == -1 and self.arc_progress <= 0.0):
+            # Modifica importante: assegno current_node sempre al nodo FINALE dell'arco per evitare errori
+            if self.movement_direction == 1:
+                self.current_node = arc['final_node']
+            else:
+                self.current_node = arc['initial_node']
+
+            self.evacuation_path.pop(0)
+            self.moving_along_arc = False
+            self.arc_progress = 0.0
+            logger.info(f"User {self.user_id} completed arc {current_arc_id}, current_node set to {self.current_node}")
+
+            if self.evacuation_path:
+                # Posiziono utente sul nodo iniziale del prossimo arco
+                next_arc_id = self.evacuation_path[0]
+                next_arc = self.find_arc_by_id(arcs, next_arc_id)
+                if next_arc is None:
+                    logger.warning(f"User {self.user_id} next arc {next_arc_id} not found")
+                    return False
+
+                if self.current_node == next_arc['initial_node']:
+                    new_pos = np.array([next_arc['x1'], next_arc['y1'], next_arc['z1']])
+                elif self.current_node == next_arc['final_node']:
+                    new_pos = np.array([next_arc['x2'], next_arc['y2'], next_arc['z2']])
+                else:
+                    logger.warning(f"User {self.user_id} node {self.current_node} does not match next arc {next_arc_id}")
+                    return False
+
+                node = next(n for n in nodes if n['node_id'] == self.current_node)
+                if not self.is_position_inside_node(new_pos, node):
+                    new_pos = np.array([
+                        np.clip(new_pos[0], node['x1'], node['x2']),
+                        np.clip(new_pos[1], node['y1'], node['y2']),
+                        np.clip(new_pos[2], node['z1'], node['z2']),
+                    ])
+                self.x, self.y, self.z = new_pos
+                return False
+            else:
+                # Percorso completato: posizione finale su nodo di arrivo (final_node)
+                final_node_id = self.current_node
+                final_node = next((n for n in nodes if n['node_id'] == final_node_id), None)
+                if final_node:
+                    # Posiziono esattamente al centro del nodo finale
+                    self.x = (final_node['x1'] + final_node['x2']) / 2
+                    self.y = (final_node['y1'] + final_node['y2']) / 2
+                    self.z = (final_node['z1'] + final_node['z2']) / 2
+
+                logger.info(f"User {self.user_id} reached end of evacuation path at node {final_node_id}")
+                self.mark_as_salvo()
+                return True
+        
+        self.moving_along_arc = True
+        return False
+
+    def mark_as_salvo(self):
+        if self.state == "salvo":
+        # Evito doppioni
+            return
+        self.evacuation_path.clear()
         self.moving_along_arc = False
         self.arc_progress = 0.0
-        self.state = "allerta"
-        self.speed = self.speed_alert
-        self.event = self.event or "evacuazione_in_corso"  # mantiene eventuale evento di allerta
-        self.waiting_for_path = False
-        self.path_wait_timer = 0
-        logger.info(f"User {self.user_id} updated evacuation path with {len(arc_list)} arcs and remains in ALERT")
+        self.state = "salvo"
+        self.speed = 0
+        logger.info(f"User {self.user_id} evacuation completed, state set to SALVO")
 
+        
 
-    def clear_evacuation_path(self):
-        """
-        Clear the evacuation path and return to normal state.
-        """
-        self.evacuation_path = []
-        self.moving_along_arc = False
-        self.arc_progress = 0.0
-        self.state = "normale"
-        self.speed = self.speed_normal
-        self.event = None
-        self.waiting_for_path = False
-        self.path_wait_timer = 0
-        logger.info(f"User {self.user_id} cleared evacuation path and returned to NORMAL state")
+    def set_evacuation_path(self, new_path):
+        if new_path != self.evacuation_path:
+            logger.info(f"User {self.user_id} received new evacuation path: {new_path}")
+            self.evacuation_path = new_path.copy()
+            self.moving_along_arc = False
+            self.arc_progress = 0.0
+            self.blocked = False
+            if self.state != "allerta":
+                self.state = "allerta"
+                self.speed = self.speed_alert
+                logger.info(f"User {self.user_id} state changed to ALLERTA")
+        
+
+    def set_state(self, new_state):
+        if new_state != self.state:
+            self.state = new_state
+            self.speed = self.speed_alert if new_state == "allerta" else self.speed_normal
+            logger.info(f"User {self.user_id} state changed to {new_state.upper()}")
+            if new_state == "salvo":
+                self.evacuation_path.clear()
+                self.moving_along_arc = False
+                self.arc_progress = 0.0
