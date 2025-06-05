@@ -163,8 +163,17 @@ class PositionManagerConsumer:
         try:
             msg = json.loads(body)
             if msg.get("msgType") == "paths_ready":
-                logger.info("Received 'paths_ready' message. Dispatching evacuation paths.")
-                self.send_aggregated_data(only_to_map_manager=False)
+                logger.info("Received 'paths_ready' message.")
+
+                # Controlla se ci sono utenti in pericolo
+                dangerous_users = self.db_manager.get_users_in_danger_with_paths()
+
+                if dangerous_users:
+                    logger.info("Dispatching evacuation paths.")
+                    self.send_evacuation_data(dangerous_users)
+                else:
+                    logger.info("No users in danger. Sending STOP.")
+                    self.send_stop_message()
             else:
                 logger.warning(f"Ignored unknown ack message type: {msg}")
         except Exception as e:
@@ -182,6 +191,36 @@ class PositionManagerConsumer:
     def start_consuming(self):
         logger.info("PositionManagerConsumer started.")
         self.channel.start_consuming()
+
+    def send_evacuation_data(self, evacuation_data):
+        try:
+            logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2)}")
+            for user_id, path in evacuation_data:
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key='evacuation_paths_queue',
+                    body=json.dumps({
+                        "user_id": user_id,
+                        "evacuation_path": path
+                    }),
+                    properties=pika.BasicProperties(delivery_mode=2)
+                )
+            logger.info("Sent evacuation data to evacuation_paths_queue.")
+        except Exception as e:
+            logger.error(f"Failed to send evacuation data: {e}")
+
+    def send_stop_message(self):
+        try:
+            self.channel.basic_publish(
+                exchange='',
+                routing_key='evacuation_paths_queue',
+                body=json.dumps({"msgType": "Stop"}),
+                properties=pika.BasicProperties(delivery_mode=2)
+            )
+            logger.info("Sent stop message to evacuation_paths_queue.")
+        except Exception as e:
+            logger.error(f"Failed to send stop message: {e}")
+
 
 
 if __name__ == "__main__":
