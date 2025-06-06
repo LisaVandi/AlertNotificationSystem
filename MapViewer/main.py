@@ -1,11 +1,13 @@
 import json
+import math
 import os
 import psycopg2
 import networkx as nx
 import re
 import asyncio
+import httpx
 
-from fastapi import FastAPI, Body, Query, HTTPException, status
+from fastapi import FastAPI, Body, Query, HTTPException, Response
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +21,11 @@ from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
 from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
+from MapViewer.app.services.height_mapper import HeightMapper
+from MapViewer.app.config.settings import Z_RANGES, SCALE_CONFIG
+
+USER_SIMULATOR_URL = "http://localhost:8001" 
+height_mapper = HeightMapper(Z_RANGES, SCALE_CONFIG)
 
 async def clear_positions_on_startup():
     loop = asyncio.get_event_loop()
@@ -280,6 +287,39 @@ def disable_edge(data: dict = Body(...)):
         conn.close()
 
     return {"message": f"Arc {arc_id} disabled"}
+
+@app.get("/api/positions")
+async def proxy_positions():
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{USER_SIMULATOR_URL}/positions")
+            raw_data = r.json()
+            positions = raw_data.get("positions", [])
+            
+            enriched_positions = []
+            for p in positions:
+                p["floor"] = None
+                try:
+                    z_pixels = float(p.get("z", 0))
+                except ValueError:
+                    enriched_positions.append(p)
+                    continue
+
+                cm_model = height_mapper.pixels_to_model_units(z_pixels)
+                z_meters = height_mapper.model_units_to_meters(cm_model)
+
+                floor_est = math.floor(z_meters / height_mapper.height_per_floor)
+
+                if floor_est < 0:
+                    floor_est = None
+
+                p["floor"] = floor_est
+                enriched_positions.append(p)
+
+            return JSONResponse(content={"positions": enriched_positions})
+
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Unable to contact UserSimulator: {e}")
 
 
 @app.get("/")
