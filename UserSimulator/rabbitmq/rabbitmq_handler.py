@@ -80,59 +80,72 @@ class RabbitMQHandler:
 
     def on_alert(self, ch, method, properties, body):
         try:
-            logger.info(f"Raw alert message received: {body}")  # Log del messaggio grezzo
-            alert_msg = json.loads(body)
-            logger.info(f"Processing alert: {alert_msg.get('identifier', 'no id')}")
-            
-            self.simulator.handle_alert(alert_msg)
-            
-            # Conferma esplicita del messaggio
+            message = json.loads(body)
+            msg_type = message.get("msgType", "").lower()
+
+            if msg_type == "alert":
+                logger.info("Received ALERT message.")
+                self.simulator.handle_alert(message)
+
+            elif msg_type == "Stop":
+                logger.info("Received STOP message.")
+                self.simulator.handle_stop()
+
+            else:
+                logger.warning(f"Unknown msgType received: {msg_type}")
+
             ch.basic_ack(delivery_tag=method.delivery_tag)
-            logger.info("Alert processed and acknowledged")
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format: {body}")
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON message received")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
         except Exception as e:
-            logger.error(f"Failed to process alert message: {e}", exc_info=True)
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)  # Reinserisci in coda
+            logger.error(f"Error processing message: {e}", exc_info=True)
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
 
     def on_evacuation_path(self, ch, method, properties, body):
         try:
             logger.info(f"Evacuation path message body: {body}")
             data = json.loads(body)
 
-            if not isinstance(data, list):
-                logger.warning("Expected a list of evacuation paths, but got something else.")
+            if isinstance(data, dict) and data.get("msgType", "").lower() == "stop":
+                logger.info("Received STOP message in evacuation_path queue.")
+                self.simulator.handle_stop()
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
-            logger.info(f"Users currently loaded: {list(self.simulator.users.keys())}")
+            # ▸ 1. Il payload deve essere una lista di dict
+            if not isinstance(data, list):
+                logger.warning("Expected a list of evacuation paths, got something else.")
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
+            # ▸ 2. Utenti per cui è arrivato un percorso
+            received_user_ids = set()
             for item in data:
-                user_id_raw = item.get("user_id")
-                try:
-                    user_id = int(user_id_raw)
-                except Exception as e:
-                    logger.warning(f"User ID conversion failed for {user_id_raw}: {e}")
-                    continue
+                user_id = int(item.get("user_id"))
+                received_user_ids.add(user_id)
 
-                evacuation_path = item.get("evacuation_path", [])
-
-                logger.info(f"Trying to assign evacuation path to user {user_id}: {evacuation_path}")
-
+                path = item.get("evacuation_path", [])
                 user = self.simulator.users.get(user_id)
                 if user:
-                    user.set_evacuation_path(evacuation_path)
+                    user.set_evacuation_path(path)          # assegna / aggiorna il path
                 else:
-                    logger.warning(f"User ID {user_id} not found in users")
-                    
+                    logger.warning(f"User ID {user_id} not found in simulator")
+
+            # ▸ 3. Chi NON è nella lista ma era ancora “in attesa”/“allerta” ⇒ salvo
+            for uid, usr in self.simulator.users.items():
+                if uid not in received_user_ids and usr.state in ("allerta", "in_attesa_percorso"):
+                    usr.mark_as_salvo()
+                    logger.info(f"User {uid} marked as SALVO (no longer present in paths)")
+
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
-            logger.error(f"Failed to process evacuation path message: {e}")
-            logger.debug(traceback.format_exc())
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
+            logger.error(f"Failed to process evacuation path message: {e}", exc_info=True)
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
 
     def check_connection(self):
