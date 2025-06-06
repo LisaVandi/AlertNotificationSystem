@@ -44,8 +44,6 @@ class User:
             elif self.state == "allerta":
                 if self.evacuation_path:
                     completed = self._move_along_path(arcs, nodes, dt)
-                    if completed:
-                        self.mark_as_salvo()
                     return completed
                 else:
                     # In allerta ma senza percorso, utente fermo (o si può modificare se vuoi)

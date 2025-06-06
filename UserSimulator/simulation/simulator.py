@@ -19,6 +19,7 @@ class Simulator:
         self.users_positions = {}
         self.running = False
         self.publisher = publisher
+        self._already_published_salvo = set()
 
     def initialize_users(self):
         """Initialize users with random positions based on time distribution"""
@@ -57,7 +58,7 @@ class Simulator:
                         speed_normal=self.config.speed_normal,
                         speed_alert=self.config.speed_alert
                     )
-                    
+                    user.state = "normale"
                     self.users[user_id] = user
                     logger.debug(f"User {user_id} created in node {node['node_id']}")
 
@@ -78,13 +79,19 @@ class Simulator:
 
         for user_id, user in self.users.items():
             prev_pos = (user.x, user.y, user.z)
-            completed = user.update_position(self.arcs, self.nodes, dt)
+
+            if user.state == "normale":
+                user._move_free(self.arcs, self.nodes, dt)
+                moved = True
+            else:
+                moved =user.update_position(self.arcs, self.nodes, dt)
+
             new_pos = (user.x, user.y, user.z)
-            
-            # Aggiorno sempre il vettore delle posizioni
+
+            # Aggiorno sempre le posizioni
             self.users_positions[user_id] = user.get_position_message()
 
-            # Pubblico solo se in allerta e se la posizione è cambiata
+            # In fase di allerta, pubblico solo se posizione cambiata o bloccato
             if user.state == "allerta" and (prev_pos != new_pos or user.blocked) and self.publisher:
                 user.event = self.alert_event
                 try:
@@ -94,7 +101,17 @@ class Simulator:
                 except Exception as e:
                     logger.error(f"Failed to publish position for user {user_id}: {e}")
 
-        logger.debug(f"Tick completed")
+            # Pubblico utente appena passato a salvo (salvo = stato "salvo")
+            if user.state == "salvo" and user_id not in getattr(self, "_already_published_salvo", set()):
+                try:
+                    position_msg = user.get_position_message()
+                    self.publisher.publish_position(position_msg)
+                    logger.debug(f"Published position for user {user_id} in stato salvo")
+                    self._already_published_salvo.add(user_id)
+                except Exception as e:
+                    logger.error(f"Failed to publish position for user {user_id}: {e}")
+
+        logger.debug("Tick completed")
 
 
     def handle_alert(self, alert_msg):
@@ -104,7 +121,6 @@ class Simulator:
             return
 
         self.state = "allerta"
-        
         self.alert_event = alert_msg.get('info', [{}])[0].get('event', 'unknown')
         logger.warning(f"ALERT TRIGGERED: {self.alert_event}")
 
@@ -129,7 +145,6 @@ class Simulator:
                 user.mark_as_salvo()
                 self.users_positions[user.user_id] = user.get_position_message()
                 logger.info(f"After mark_as_salvo, user {user.user_id} state: {user.state}")
-            
             
             if self.publisher:
                 try:
@@ -164,10 +179,11 @@ class Simulator:
             user.speed = user.speed_normal
             
         self.stop_timer = datetime.now()
+        logger.info(f"Stop timer started at {self.stop_timer}")
 
     def _check_stop_resume(self):
-        """Check if stop period should end"""
         elapsed = (datetime.now() - self.stop_timer).total_seconds()
+        logger.debug(f"Checking stop resume: elapsed={elapsed}s, timeout={self.config.timeout_after_stop}s")
         if elapsed > self.config.timeout_after_stop:
             logger.info("Resuming normal operations")
             self.state = "normale"
@@ -186,5 +202,7 @@ class Simulator:
         logger.info("Simulator run() started.")
 
         while True:
+            if self.state == "salvo" and self.stop_timer:
+                self._check_stop_resume()
             self.tick()
             time.sleep(self.config.simulation_tick)

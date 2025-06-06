@@ -186,6 +186,23 @@ class DBManager:
             logger.error(f"Failed to retrieve node_type for node {node_id}: {e}")
             return None
 
+    def is_everyone_safe(self):
+        """
+        Checks if all users in the current_position table have danger = FALSE.
+
+        Returns:
+            bool: True if no users are in danger, False otherwise.
+        """
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM current_position WHERE danger = TRUE;
+                """)
+                result = cursor.fetchone()
+                return result[0] == 0
+        except Exception as e:
+            logger.error(f"Failed to check danger status: {e}")
+            return False  # Assume not safe if query fails
 
 
     def close(self):
