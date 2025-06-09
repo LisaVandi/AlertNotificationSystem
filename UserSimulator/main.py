@@ -60,4 +60,4 @@ def on_startup():
 # Avvio diretto con uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("UserSimulator.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("UserSimulator.main:app", host="0.0.0.0", port=8001, reload=False)

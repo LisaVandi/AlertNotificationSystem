@@ -7,6 +7,58 @@ let currentClickCoords = null;
 let isAddingEdge = false;
 let selectedNodesForEdge = [];
 let selectedEdge = null;
+const PIXELS_PER_FLOOR = 300;
+
+function createUserMarker(user, latlng, mapObj) {
+  const userIcon = L.divIcon({
+    className: '',  
+    html: `
+      <div style="
+        font-size: 32px;
+        line-height: 32px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        transform: translate(-50%, -100%);
+      ">👤</div>
+    `,
+    iconSize: [32, 32],      
+    iconAnchor: [16, 32]     
+  });
+
+  return L.marker(latlng, { icon: userIcon })
+          .bindTooltip(`Utente ${user.user_id}`);
+}
+
+async function loadUsers(mapObj) {
+  try {
+    const resp = await fetch("/api/positions"); 
+    if (!resp.ok) {
+      console.error(`Error loading user positions: HTTP ${resp.status}`);
+      return;
+    }
+    const data = await resp.json();
+    const allPositions = data.positions || [];
+
+    mapObj.usersLayer.clearLayers();
+
+    const thisFloor = mapObj.floor;
+    const relevant = allPositions.filter(p => {
+      if (typeof p.z !== "number") return false;
+      const userFloor = Math.floor(p.z / PIXELS_PER_FLOOR);
+      return userFloor === thisFloor;
+    });
+    
+    relevant.forEach(user => {
+      const x_px = user.x;
+      const y_px = user.y;
+      const latlng = imgPxToLatLng(x_px, y_px);
+      const marker = createUserMarker(user, latlng, mapObj);
+      mapObj.usersLayer.addLayer(marker);
+    });
+  } catch (e) {
+    console.error("Exception in loadUsers():", e);
+  }
+}
+
 
 function initNodeTypes(types) {
   nodeTypeSelect.innerHTML = "";
@@ -282,22 +334,24 @@ async function init() {
     L.imageOverlay(`/static/img/${imageFilename}`, bounds).addTo(map);
     const markersLayer = L.layerGroup().addTo(map);
     const arcsLayer    = L.layerGroup().addTo(map);
+    const usersLayer   = L.layerGroup().addTo(map);
 
     const mapObj = {
       floor,
       map,
       markersLayer,
       arcsLayer,
+      usersLayer,
       imageFilename,
       imageWidth,
       imageHeight
     };
     maps.push(mapObj);
     await loadGraph(mapObj);
+    await loadUsers(mapObj); 
     addClickListener(mapObj);
     window.addEventListener("resize", () => {
       maps.forEach(({ map, imageWidth, imageHeight }) => {
-        // const container = document.getElementById(`map-${map.options.crs.code.split(':').pop()}`)?.parentElement;
         const container = document.getElementById(`map-Simple`)?.parentElement;
         if (container) {
           const wrapper = container.querySelector(".map-wrapper");
@@ -311,6 +365,13 @@ async function init() {
   if (maps.length > 0) {
     activeFloor = maps[0].floor;
   }
+
+  const POLLING_INTERVAL_MS = 3000;
+  setInterval(() => {
+    maps.forEach(mObj => {
+      loadUsers(mObj);
+    });
+  }, POLLING_INTERVAL_MS);
 
   document.getElementById("btnAddEdge")
     .addEventListener("click", toggleAddEdgeMode);

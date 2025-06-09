@@ -14,7 +14,7 @@ ALERT_MANAGER_DELAY = 3
 startup_sequence = [
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
     ("NotificationCenter", ["python", "-m", "NotificationCenter.main"]),
-    ("UserSimulator", ["uvicorn", "UserSimulator.main:app", "--reload"]),
+    ("UserSimulator", ["uvicorn", "UserSimulator.main:app", "--reload", "--port", "8001"]),
     ("MapManager", ["python", "-m", "MapManager.main"]),
 ]
 
