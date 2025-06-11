@@ -10,3 +10,8 @@ PATHFINDING_CONFIG = {
     "max_node_capacity": 50, # Capacity limit above which a node is considered overcrowded
     "max_arc_capacity": 30 # Capacity limit above which an arc may become inactive  
 }
+
+STAIR_CONFIG = {
+    "max_connected_floors": 3,  
+    "traversal_time_per_floor": 30  
+}

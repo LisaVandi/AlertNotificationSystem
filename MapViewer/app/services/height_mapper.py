@@ -4,7 +4,6 @@ Z-Height Mapper Utility
 This module provides functions to calculate height values based on floor levels
 and translate between different coordinate spaces (real-world vs. model).
 """
-from PIL import Image
 
 class HeightMapper:
     def __init__(self, z_ranges: dict, scale_config: dict, dpi=100):

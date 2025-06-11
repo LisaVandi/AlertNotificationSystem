@@ -18,7 +18,7 @@ def create_tables():
             y2 INTEGER,
             z1 INTEGER,
             z2 INTEGER,
-            floor_level INTEGER,
+            floor_level INTEGER[],
             capacity INTEGER,
             node_type VARCHAR(50), 
             current_occupancy INT DEFAULT 0, 

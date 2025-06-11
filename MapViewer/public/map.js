@@ -242,8 +242,12 @@ async function loadGraph(mapObj) {
     arcsLayer.clearLayers();
 
     data.nodes.forEach(node => {
-      const latlng = L.latLng(imageHeight - node.y, node.x);
-      markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
+      if (Array.isArray(node.floor_level) && node.floor_level.some(f => f === mapObj.floor)) {
+        const latlng = L.latLng(mapObj.imageHeight - node.y, node.x);
+        markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
+      }
+      // const latlng = L.latLng(imageHeight - node.y, node.x);
+      // markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
 
     data.arcs.forEach(arc => {

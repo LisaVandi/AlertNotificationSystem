@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import psycopg2
 
@@ -79,3 +79,18 @@ class EvacuationConsumer:
         except Exception as e:
             logger.error(f"Error retrieving floor_level for node {node_id}: {str(e)}")
             return None
+        
+    def get_connected_floors(self, base_floor: int) -> List[int]:
+        try:
+            conn = psycopg2.connect(**DATABASE_CONFIG)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT unnest(floor_level) 
+                FROM nodes 
+                WHERE %s = ANY(floor_level) 
+                AND node_type = 'stairs'
+            """, (base_floor,))
+            return [row[0] for row in cur.fetchall()]
+        finally:
+            cur.close()
+            conn.close()

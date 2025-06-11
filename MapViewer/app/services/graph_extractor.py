@@ -19,17 +19,34 @@ def insert_graph_into_db(nodes, arcs, floor_level):
             x2_px = node.get("x2")
             y1_px = node.get("y1")
             y2_px = node.get("y2")
-            print(f"Original node coords px: x1={x1_px}, x2={x2_px}, y1={y1_px}, y2={y2_px}")
-
+            
+            if node.get("node_type") == "stairs":
+                # Calculate the two connected floors (e.g., current and next)
+                connected_floors = node.get("connected_floors", [floor_level, floor_level + 1])
+                if not isinstance(connected_floors, list):
+                    connected_floors = [connected_floors]
+                
+                # Calculate Z range to cover both floors
+                z_min = height_mapper.get_floor_z_range(min(connected_floors))[0]
+                z_max = height_mapper.get_floor_z_range(max(connected_floors))[1]
+                
+                floor_levels = connected_floors
+                z1 = int(z_min * 100)
+                z2 = int(z_max * 100)
+            else:
+                floor_levels = [floor_level]
+                z_min, z_max = height_mapper.get_floor_z_range(floor_level)
+                z1 = int(z_min * 100)
+                z2 = int(z_max * 100)
+            
             cur.execute("""
                 INSERT INTO nodes (x1, x2, y1, y2, z1, z2, floor_level, capacity, node_type, current_occupancy)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING node_id
             """, (
                 x1_px, x2_px,
                 y1_px, y2_px,
-                int(height_mapper.get_floor_z_range(floor_level)[0] * 100),
-                int(height_mapper.get_floor_z_range(floor_level)[1] * 100),
-                floor_level,
+                z1, z2,
+                floor_levels,
                 node.get("capacity", SCALE_CONFIG["default_node_capacity_per_sqm"]),
                 node.get("node_type", "classroom"),
                 node.get("current_occupancy", 0)

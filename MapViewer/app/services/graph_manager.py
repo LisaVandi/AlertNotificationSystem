@@ -18,6 +18,10 @@ class GraphManager:
 
     def get_graph(self, floor_level):
         with self.lock:
+            # aggiunto
+            if floor_level not in self.graphs:
+                self._load_floor_graph(floor_level)
+                
             return self.graphs.get(floor_level)
 
     def add_node(self, x_px: int, y_px: int, floor: int, node_type: str, image_height_px: int) -> dict:
@@ -159,11 +163,13 @@ class GraphManager:
                 px_x = int(node["x"])  
                 px_y = int(node["y"])
                 
+                current_floor = node.get("floor_level", [floor_level])[0]
+                
                 G.add_node(
                     node_id,
                     x=px_x,
                     y=px_y,
-                    floor_level=floor_level,
+                    floor_level=current_floor,
                     node_type=node.get("node_type"),
                     current_occupancy=node.get("current_occupancy", 0),
                     capacity=node.get("capacity", 0)
@@ -180,5 +186,63 @@ class GraphManager:
                 G.add_edge(from_node, to_node, active=arc.get("active", True), arc_id=arc.get("arc_id"), traversal_time=traversal_time_sec)
             self.graphs[floor_level] = G
             print(f"Graph for floor {floor_level} loaded with {len(nodes)} nodes and {len(arcs)} arcs")
+
+    def _load_floor_graph(self, floor_level):
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        cur = conn.cursor()
+        
+        try:
+            cur.execute("""
+                SELECT node_id, x1, x2, y1, y2, node_type, 
+                    current_occupancy, capacity, floor_level 
+                FROM nodes 
+                WHERE %s = ANY(floor_level)
+            """, (floor_level,))
+            
+            nodes = []
+            for row in cur.fetchall():
+                node_id, x1, x2, y1, y2, node_type, occ, cap, floors = row
+                nodes.append({
+                    "id": node_id,
+                    "x": (x1 + x2) // 2,
+                    "y": (y1 + y2) // 2,
+                    "node_type": node_type,
+                    "current_occupancy": occ,
+                    "capacity": cap,
+                    "floor_level": floors
+                })
+            
+            # Carica archi correlati
+            cur.execute("""
+                SELECT arc_id, initial_node, final_node, active 
+                FROM arcs 
+                WHERE initial_node IN (
+                    SELECT node_id FROM nodes WHERE %s = ANY(floor_level)
+                )
+            """, (floor_level,))
+            
+            arcs = []
+            for row in cur.fetchall():
+                arc_id, initial_node, final_node, active = row
+                arcs.append({
+                    "arc_id": arc_id,
+                    "initial_node": initial_node,
+                    "final_node": final_node,
+                    "active": active
+                })
+            
+            # Costruisci il grafo
+            G = nx.Graph()
+            for node in nodes:
+                G.add_node(node['id'], **node)
+            
+            for arc in arcs:
+                G.add_edge(arc['initial_node'], arc['final_node'], 
+                        arc_id=arc['arc_id'], active=arc['active'])
+            
+            self.graphs[floor_level] = G    
+        finally:
+            cur.close()
+            conn.close()
 
 graph_manager = GraphManager()

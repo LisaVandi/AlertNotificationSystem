@@ -11,7 +11,6 @@ Returns a connection object if successful, or logs an error and returns None if 
 """
 
 import psycopg2
-import logging
 from MapViewer.app.config.settings import DATABASE_CONFIG
 from NotificationCenter.app.config.logging import setup_logging
 

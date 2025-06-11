@@ -103,13 +103,13 @@ def preload_graphs():
         with graph_manager.lock:
             graph_manager.graphs.clear()
 
-        cur.execute("SELECT DISTINCT floor_level FROM nodes")
+        cur.execute("SELECT DISTINCT unnest(floor_level) AS single_floor FROM nodes ORDER BY 1")
         floors = [row[0] for row in cur.fetchall()]
 
         for floor in floors:
             cur.execute("""
                 SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level
-                FROM nodes WHERE floor_level = %s
+                FROM nodes WHERE %s = ANY(floor_level)
             """, (floor,))
             nodes_db = cur.fetchall()
             
@@ -131,8 +131,8 @@ def preload_graphs():
             cur.execute("""
                 SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
                 FROM arcs
-                WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
-                AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+                WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
+                AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
             """, (floor, floor))
             arc_rows = cur.fetchall()
             print(f"Floor {floor}: loaded {len(nodes)} nodes and {len(arc_rows)} arcs from DB")
@@ -220,17 +220,18 @@ def get_graph(floor: int):
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
         
+        # WHERE floor_level = %s
         cur.execute("""
             SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
-            FROM nodes WHERE floor_level = %s
+            FROM nodes WHERE %s = ANY(floor_level)
         """, (floor,))
         nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
 
         cur.execute("""
             SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
             FROM arcs
-            WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
-            AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+            WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
+            AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
         """, (floor, floor))
         arcs = [{"arc_id": r[0], "from": r[1], "to": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7] } for r in cur.fetchall()]
           
@@ -320,7 +321,6 @@ async def proxy_positions():
 
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Unable to contact UserSimulator: {e}")
-
 
 @app.get("/")
 async def get_index():

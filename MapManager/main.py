@@ -31,7 +31,7 @@ def preload_graphs():
         for floor in floors:
             cur.execute("""
                 SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level
-                FROM nodes WHERE floor_level = %s
+                FROM nodes WHERE %s = ANY(floor_level)
             """, (floor,))
             nodes_db = cur.fetchall()
             
@@ -53,8 +53,8 @@ def preload_graphs():
             cur.execute("""
                 SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
                 FROM arcs
-                WHERE initial_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
-                AND final_node IN (SELECT node_id FROM nodes WHERE floor_level = %s)
+                WHERE initial_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))
+                AND final_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))
             """, (floor, floor))
             arc_rows = cur.fetchall()
 

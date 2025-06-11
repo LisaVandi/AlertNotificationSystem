@@ -9,7 +9,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 shutdown_event = threading.Event()
 processes = {}
 
-ALERT_MANAGER_DELAY = 3
+ALERT_MANAGER_DELAY = 5
 
 startup_sequence = [
     ("MapViewer uvicorn", ["uvicorn", "MapViewer.main:app", "--reload"]),
@@ -50,8 +50,6 @@ def start_alert_manager():
     run_process("PositionManager", ["python", "PositionManager/main.py"])
     print(f"[INFO] PositionManager started after {ALERT_MANAGER_DELAY} seconds delay")        
      
-         
-
 
 def monitor_logs():
     last_positions = {t['name']: 0 for t in monitor_targets}
