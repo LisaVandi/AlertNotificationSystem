@@ -90,6 +90,8 @@ class Simulator:
 
             # Aggiorno sempre le posizioni
             self.users_positions[user_id] = user.get_position_message()
+            logger.debug(f"User {user_id} updated position: {self.users_positions[user_id]}")
+
 
             # In fase di allerta, pubblico solo se posizione cambiata o bloccato
             if user.state == "allerta" and (prev_pos != new_pos or user.blocked) and self.publisher:

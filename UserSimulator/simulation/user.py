@@ -1,3 +1,4 @@
+import random
 import numpy as np
 from UserSimulator.utils.logger import logger
 
@@ -5,10 +6,10 @@ class User:
     def __init__(self, user_id, node, speed_normal, speed_alert):
         self.user_id = user_id
         self.current_node = node['node_id']
-        self.x = np.random.uniform(node['x1'], node['x2'])
-        self.y = np.random.uniform(node['y1'], node['y2'])
-        self.z = np.random.uniform(node['z1'], node['z2'])
-        
+        self.x = int(round(np.random.uniform(node['x1'], node['x2'])))
+        self.y = int(round(np.random.uniform(node['y1'], node['y2'])))
+        self.z = int(round(np.random.uniform(node['z1'], node['z2'])))
+
         self.state = "normale"  # "normale", "allerta", "salvo"
         self.speed_normal = speed_normal
         self.speed_alert = speed_alert
@@ -21,6 +22,10 @@ class User:
         self.arc_progress = 0.0
         self.movement_direction = 1  # +1 o -1 per indicare direzione su arco
         self.blocked = False
+
+        self.failed_directions = set()
+        self.stuck_ticks = 0
+        self.prev_node_id = self.current_node
         
         logger.info(f"[INIT] User {self.user_id} initialized at node {self.current_node} pos=({self.x:.2f},{self.y:.2f},{self.z:.2f}) state={self.state}")
 
@@ -63,36 +68,111 @@ class User:
             logger.error(f"User {self.user_id} update_position error: {e}", exc_info=True)
             return False
 
+    def _get_adjacent_nodes(self, node_id, arcs):
+        """Restituisce lista di nodi direttamente connessi a node_id"""
+        node_id = int(node_id)
+        adjacent = set()
+        for arc in arcs:
+            if arc['initial_node'] == node_id:
+                adjacent.add(arc['final_node'])
+            elif arc['final_node'] == node_id:
+                adjacent.add(arc['initial_node'])
+        return list(adjacent)
 
-    def _move_free(self, arcs, nodes, dt):
-        distance = self.speed * dt
-        direction = np.random.normal(size=3)
-        direction /= np.linalg.norm(direction)
-        
-        new_pos = np.array([self.x, self.y, self.z]) + direction * distance
-        target_node = self._find_node_containing_point(*new_pos, nodes)
-        
-        if target_node:
-            if target_node['node_id'] == self.current_node or self._is_connected(self.current_node, target_node['node_id'], arcs):
-                self.current_node = target_node['node_id']
-                self.x, self.y, self.z = new_pos
-                logger.debug(f"User {self.user_id} moved free to node {self.current_node}")
-            else:
-                logger.debug(f"User {self.user_id} blocked: no arc from {self.current_node} to {target_node['node_id']}")
-        else:
-            logger.debug(f"User {self.user_id} move out of bounds prevented")
-
-    def _find_node_containing_point(self, x, y, z, nodes):
+    def _get_node_by_id(self, node_id, nodes):
+        """Restituisce il dizionario del nodo dato l'ID"""
         for node in nodes:
-            if node['x1'] <= x <= node['x2'] and node['y1'] <= y <= node['y2'] and node['z1'] <= z <= node['z2']:
+            if node['node_id'] == node_id:
                 return node
         return None
 
+
+    def _move_free(self, arcs, nodes, dt):
+        max_attempts = 10
+        moved = False
+
+        # Controlla se l'utente è bloccato da troppi tick
+        if self.stuck_ticks >= 5:
+            logger.debug(f"[FALLBACK_TRIGGER] User {self.user_id} stuck in node {self.current_node} for {self.stuck_ticks} ticks")
+            adjacent_nodes = self._get_adjacent_nodes(self.current_node, arcs)
+            random.shuffle(adjacent_nodes)
+
+            for adj_node in adjacent_nodes:
+                if (self.current_node, adj_node) in self.failed_directions:
+                    continue
+                node_data = self._get_node_by_id(adj_node, nodes)
+                if node_data:
+                    self.x = int(round(np.random.uniform(node_data['x1'], node_data['x2'])))
+                    self.y = int(round(np.random.uniform(node_data['y1'], node_data['y2'])))
+                    self.z = int(round(np.random.uniform(node_data['z1'], node_data['z2'])))
+                    self.current_node = adj_node
+                    self.stuck_ticks = 0
+                    self.prev_node_id = adj_node
+                    logger.debug(f"[FALLBACK_MOVE] User {self.user_id} moved from stuck node to adjacent node {adj_node}")
+                    return
+            logger.debug(f"[STUCK_NO_ADJACENT] User {self.user_id} could not escape from node {self.current_node}")
+            return
+
+        for attempt in range(max_attempts):
+            dx = np.random.randint(-15, 16)
+            dy = np.random.randint(-15, 16)
+            dz = np.random.randint(-2, 3)
+
+            new_x = self.x + dx
+            new_y = self.y + dy
+            new_z = self.z + dz
+
+            target_node = self._find_containing_node(new_x, new_y, new_z, nodes)
+
+            if target_node is not None:
+                self.x = new_x
+                self.y = new_y
+                self.z = new_z
+                self.current_node = target_node
+                moved = True
+                logger.debug(f"User {self.user_id} moved free to node {target_node}")
+                break
+
+            # A metà dei tentativi, prova a fare jitter nel nodo corrente
+            if attempt == max_attempts // 2:
+                node_data = self._get_node_by_id(self.current_node, nodes)
+                if node_data:
+                    self.x = int(round(np.random.uniform(node_data['x1'], node_data['x2'])))
+                    self.y = int(round(np.random.uniform(node_data['y1'], node_data['y2'])))
+                    self.z = int(round(np.random.uniform(node_data['z1'], node_data['z2'])))
+                    self.current_node = self.current_node  # invariato
+                    moved = True
+                    logger.debug(f"User {self.user_id} jittered inside node {self.current_node}")
+                    break
+
+        # Aggiorna contatore stuck
+        if self.current_node == self.prev_node_id:
+            self.stuck_ticks += 1
+        else:
+            self.stuck_ticks = 0
+            self.prev_node_id = self.current_node
+
+
+    def _find_containing_node(self, x, y, z, nodes):
+        for node in nodes:
+            if node['x1'] <= x <= node['x2'] and \
+            node['y1'] <= y <= node['y2'] and \
+            node['z1'] <= z <= node['z2']:
+                return node['node_id']
+        return None
+
+
     def _is_connected(self, node_a, node_b, arcs):
+        node_a = int(node_a)
+        node_b = int(node_b)
         for arc in arcs:
-            if (arc['initial_node'] == node_a and arc['final_node'] == node_b) or \
-               (arc['initial_node'] == node_b and arc['final_node'] == node_a):
-                return True
+            try:
+                if (int(arc['initial_node']) == node_a and int(arc['final_node']) == node_b) or \
+                (int(arc['initial_node']) == node_b and int(arc['final_node']) == node_a):
+                    return True
+            except Exception as e:
+                logger.warning(f"[ARC FORMAT ERROR] {arc} caused {e}")
+        logger.debug(f"[NO ARC] No connection between {node_a} and {node_b}")
         return False
 
     def find_arc_by_id(self, arcs, arc_id):
@@ -180,7 +260,7 @@ class User:
                 np.clip(pos[1], node['y1'], node['y2']),
                 np.clip(pos[2], node['z1'], node['z2']),
             ])
-        self.x, self.y, self.z = pos
+        self.x, self.y, self.z = map(lambda v: int(round(v)), pos)
         self.blocked = False
 
         logger.debug(f"User {self.user_id} moved along arc {current_arc_id} progress={self.arc_progress:.2f}")
