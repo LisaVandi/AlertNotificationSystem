@@ -9,7 +9,7 @@ def get_graph_json(floor_level: int, image_filename: str, image_width: int, imag
 
     try:
         cur.execute("""
-            SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level
+            SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level, safe
             FROM nodes
             WHERE %s = ANY(floor_level)
         """, (floor_level,))
@@ -17,7 +17,7 @@ def get_graph_json(floor_level: int, image_filename: str, image_width: int, imag
         
         nodes = []
         for row in nodes_db:
-            node_id, x1, x2, y1, y2, node_type, occ, cap, floor_levels = row
+            node_id, x1, x2, y1, y2, node_type, occ, cap, floor_levels, safe = row
             x_center = (x1 + x2) / 2
             y_center = (y1 + y2) / 2
             nodes.append({
@@ -27,7 +27,8 @@ def get_graph_json(floor_level: int, image_filename: str, image_width: int, imag
                 "node_type": node_type,
                 "current_occupancy": occ,
                 "capacity": cap,
-                "floor_level": floor_levels
+                "floor_level": floor_levels, 
+                "safe": safe
             })
 
         cur.execute("""

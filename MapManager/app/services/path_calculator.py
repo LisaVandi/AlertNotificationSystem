@@ -14,23 +14,27 @@ def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[in
     try:
         start_floor = G.nodes[start_node].get("floor_level")[0]
         combined_G = G.copy()
-        stair_nodes = [n for n, d in G.nodes(data=True) 
-                      if d.get("node_type") == "stairs" 
-                      and start_floor in d.get("floor_level", [])]
+        stair_nodes = [
+            n for n, d in G.nodes(data=True) 
+            if d.get("node_type") == "stairs"
+               and isinstance(d.get("floor_level"), list)
+               and len(d["floor_level"]) >= 2
+               and start_floor in d["floor_level"]
+        ]
+        
         for stair_node in stair_nodes:
             connected_floors = G.nodes[stair_node].get("floor_level", [])
             for floor in connected_floors:
                 if floor != start_floor:
-                    # Carica il grafo del piano collegato
+                    # Load the graph of the connected floor
                     floor_graph = graph_manager.get_graph(floor)
                     if floor_graph:
-                        # Aggiungi nodi e archi del piano collegato
+                        # Add nodes and edges of the connected floor
                         combined_G.add_nodes_from(floor_graph.nodes(data=True))
                         combined_G.add_edges_from(floor_graph.edges(data=True))
         
         G_filtered = combined_G.copy()
         # Copy graph and filter inactive edges
-        # G_filtered = G.copy()
         for u, v, data in list(G.edges(data=True)):
             if not data.get("active", True):
                 G_filtered.remove_edge(u, v)

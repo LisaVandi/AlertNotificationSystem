@@ -288,6 +288,18 @@ function toggleAddEdgeMode() {
 }
 
 async function init() {
+  // Check if the system is already configured
+  const cfgResp = await fetch("/api/configuration-status");
+  const { configured } = await cfgResp.json();
+  const btnCfg = document.getElementById("btnConfiguration");
+  if (configured) {
+    // If already configured, hide the button
+    btnCfg.style.display = "none";
+  } else {
+    // Otherwise, keep the button visible
+    btnCfg.style.display = "block";
+  }
+
   const images = (await fetch("/api/images").then(r => r.json())).images;
   const nodeTypesData = (await fetch("/api/node-types").then(r => r.json()));
   initNodeTypes(nodeTypesData.node_types);
@@ -443,6 +455,6 @@ async function init() {
         btn.textContent = "Configuration completed";      
       }
     });
-}
+  }
 
 init().catch(err => console.error("Error in init():", err));

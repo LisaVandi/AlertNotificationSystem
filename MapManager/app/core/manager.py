@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 import yaml
 import psycopg2
 
@@ -61,8 +61,8 @@ def initialize_evacuation_paths(floor_level: int, event_type: str):
         if path is None:
             logger.warning(f"[Init] No path (None) for node {node_id}; skipping")
         else:
-            update_node_evacuation_path(node_id, path)
-            logger.info(f"[Init] Saved evacuation path for node {node_id}: {path}")
+            update_node_evacuation_path(node_id, [path[0]])
+            logger.info(f"[Init] Saved evacuation path for node {node_id}: {path[0]}")
 
 
 def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
@@ -131,9 +131,12 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str,
             return
 
         logger.debug(f"Computed safe_nodes={safe_nodes}")
+        # raccogliamo tutti i percorsi in un dict nodo→lista_arc
+        paths_by_node: dict[int, list[int]] = {}
         for source in alert_nodes:
             if source in safe_nodes:
                 update_node_evacuation_path(source, [])
+                paths_by_node[source] = []
                 continue
 
             if source not in G:
@@ -177,14 +180,16 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type:str,
                 logger.warning(f"No evacuation path found for node {source}; skipping DB update")
             else:
                 update_node_evacuation_path(source, path)
+                paths_by_node[source] = path
                 logger.info(f"Saved evacuation path for node {source}: {path}")
                 
+        # publish payload with all paths for each node
         if rabbitmq_handler:
             try:
                 publish_paths_ready(rabbitmq_handler)
                 logger.info(f"Published 'paths_ready' su {ACK_EVACUATION_QUEUE}")
             except Exception as e:
-                logger.error(f"Errore invio msg 'paths_ready': {e}")
+                logger.error(f"Error sending 'paths_ready' message: {e}")
                     
     except Exception as e:
         logger.error(f"Error in handle_evacuations: {e}")

@@ -172,7 +172,8 @@ class GraphManager:
                     floor_level=current_floor,
                     node_type=node.get("node_type"),
                     current_occupancy=node.get("current_occupancy", 0),
-                    capacity=node.get("capacity", 0)
+                    capacity=node.get("capacity", 0),
+                    safe=node.get("safe", True)                    
                 )
             for arc in arcs:
                 from_node = arc.get("initial_node")

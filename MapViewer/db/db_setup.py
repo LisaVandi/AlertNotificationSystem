@@ -22,8 +22,30 @@ def create_tables():
             capacity INTEGER,
             node_type VARCHAR(50), 
             current_occupancy INT DEFAULT 0, 
-            evacuation_path INTEGER[]
+            safe BOOLEAN DEFAULT TRUE,
+            evacuation_path INTEGER[],
+            last_modified TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            last_modified_by VARCHAR(100) DEFAULT 'system'                        
         );
+    ''')
+    
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION nodes_update_metadata()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            NEW.last_modified := NOW();
+            NEW.last_modified_by := current_user;  -- o SESSION_USER, a scelta
+        RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    ''')
+    
+    cursor.execute('''
+        DROP TRIGGER IF EXISTS trg_nodes_update_meta ON nodes;
+        CREATE TRIGGER trg_nodes_update_meta
+        BEFORE UPDATE ON nodes
+        FOR EACH ROW
+        EXECUTE FUNCTION nodes_update_metadata();
     ''')
 
     # Table for current positions

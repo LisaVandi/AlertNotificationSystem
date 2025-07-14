@@ -4,15 +4,16 @@
   "imageHeight": 934,
   "nodes": [
     {
-      "id": 25,
-      "x": 927.0,
-      "y": 655.0,
+      "id": 9,
+      "x": 128.0,
+      "y": 671.0,
       "node_type": "classroom",
       "current_occupancy": 0,
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 6,
@@ -23,7 +24,20 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
+    },
+    {
+      "id": 25,
+      "x": 927.0,
+      "y": 655.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
     },
     {
       "id": 11,
@@ -34,7 +48,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 51,
@@ -45,7 +60,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 18,
@@ -56,7 +72,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 40,
@@ -67,7 +84,8 @@
       "capacity": 10,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 47,
@@ -78,7 +96,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 48,
@@ -89,18 +108,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
-    },
-    {
-      "id": 9,
-      "x": 128.0,
-      "y": 671.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 50,
@@ -111,7 +120,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 33,
@@ -122,7 +132,20 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
+    },
+    {
+      "id": 32,
+      "x": 159.0,
+      "y": 125.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
     },
     {
       "id": 26,
@@ -135,7 +158,8 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 3,
@@ -146,7 +170,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 185,
@@ -159,7 +184,8 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 27,
@@ -170,18 +196,8 @@
       "capacity": 10,
       "floor_level": [
         0
-      ]
-    },
-    {
-      "id": 32,
-      "x": 159.0,
-      "y": 125.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 20,
@@ -192,7 +208,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 8,
@@ -203,7 +220,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 23,
@@ -214,7 +232,8 @@
       "capacity": 1000,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 49,
@@ -225,7 +244,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 10,
@@ -236,7 +256,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 13,
@@ -247,7 +268,8 @@
       "capacity": 10,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 44,
@@ -258,7 +280,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 169,
@@ -271,7 +294,20 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
+    },
+    {
+      "id": 45,
+      "x": 719.0,
+      "y": 272.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        0
+      ],
+      "safe": true
     },
     {
       "id": 75,
@@ -284,7 +320,8 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 21,
@@ -295,112 +332,8 @@
       "capacity": 100,
       "floor_level": [
         0
-      ]
-    },
-    {
-      "id": 68,
-      "x": 301.0,
-      "y": 226.0,
-      "node_type": "stairs",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0,
-        1,
-        2
-      ]
-    },
-    {
-      "id": 192,
-      "x": 297.0,
-      "y": 203.0,
-      "node_type": "stairs",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0,
-        1,
-        2
-      ]
-    },
-    {
-      "id": 56,
-      "x": 836.0,
-      "y": 312.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 53,
-      "x": 903.0,
-      "y": 396.0,
-      "node_type": "canteen",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 38,
-      "x": 289.0,
-      "y": 264.0,
-      "node_type": "bathroom",
-      "current_occupancy": 0,
-      "capacity": 10,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 19,
-      "x": 752.0,
-      "y": 634.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 43,
-      "x": 817.0,
-      "y": 266.0,
-      "node_type": "stairs",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0,
-        1,
-        2
-      ]
-    },
-    {
-      "id": 22,
-      "x": 784.0,
-      "y": 804.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 57,
-      "x": 531.0,
-      "y": 201.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 41,
@@ -411,7 +344,8 @@
       "capacity": 10,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 28,
@@ -422,7 +356,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 24,
@@ -433,7 +368,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 96,
@@ -446,7 +382,8 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 37,
@@ -459,150 +396,8 @@
         0,
         1,
         2
-      ]
-    },
-    {
-      "id": 52,
-      "x": 838.0,
-      "y": 590.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 16,
-      "x": 645.0,
-      "y": 678.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 5,
-      "x": 373.0,
-      "y": 834.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 2,
-      "x": 139.0,
-      "y": 840.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 1,
-      "x": 79.0,
-      "y": 844.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 39,
-      "x": 288.0,
-      "y": 292.0,
-      "node_type": "bathroom",
-      "current_occupancy": 0,
-      "capacity": 10,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 42,
-      "x": 966.0,
-      "y": 260.0,
-      "node_type": "bathroom",
-      "current_occupancy": 0,
-      "capacity": 10,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 17,
-      "x": 690.0,
-      "y": 636.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 55,
-      "x": 379.0,
-      "y": 271.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 14,
-      "x": 308.0,
-      "y": 725.0,
-      "node_type": "bathroom",
-      "current_occupancy": 0,
-      "capacity": 10,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 36,
-      "x": 512.0,
-      "y": 250.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 7,
-      "x": 533.0,
-      "y": 839.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
-    },
-    {
-      "id": 35,
-      "x": 846.0,
-      "y": 121.0,
-      "node_type": "classroom",
-      "current_occupancy": 0,
-      "capacity": 50,
-      "floor_level": [
-        0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 30,
@@ -613,18 +408,8 @@
       "capacity": 1000,
       "floor_level": [
         0
-      ]
-    },
-    {
-      "id": 45,
-      "x": 719.0,
-      "y": 272.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 34,
@@ -635,40 +420,122 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
-      "id": 4,
-      "x": 278.0,
-      "y": 833.0,
-      "node_type": "classroom",
+      "id": 68,
+      "x": 301.0,
+      "y": 226.0,
+      "node_type": "stairs",
       "current_occupancy": 0,
-      "capacity": 50,
+      "capacity": 100,
+      "floor_level": [
+        0,
+        1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 192,
+      "x": 297.0,
+      "y": 203.0,
+      "node_type": "stairs",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0,
+        1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 56,
+      "x": 836.0,
+      "y": 312.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
-      "id": 31,
-      "x": 144.0,
-      "y": 272.0,
-      "node_type": "classroom",
+      "id": 53,
+      "x": 903.0,
+      "y": 396.0,
+      "node_type": "canteen",
       "current_occupancy": 0,
-      "capacity": 50,
+      "capacity": 100,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
-      "id": 12,
-      "x": 416.0,
-      "y": 643.0,
+      "id": 38,
+      "x": 289.0,
+      "y": 264.0,
       "node_type": "bathroom",
       "current_occupancy": 0,
       "capacity": 10,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
+    },
+    {
+      "id": 22,
+      "x": 784.0,
+      "y": 804.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 19,
+      "x": 752.0,
+      "y": 634.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 43,
+      "x": 817.0,
+      "y": 266.0,
+      "node_type": "stairs",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0,
+        1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 57,
+      "x": 531.0,
+      "y": 201.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0
+      ],
+      "safe": true
     },
     {
       "id": 29,
@@ -679,7 +546,8 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 166,
@@ -692,7 +560,8 @@
         0,
         1,
         2
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 15,
@@ -703,7 +572,8 @@
       "capacity": 50,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
     },
     {
       "id": 46,
@@ -714,7 +584,200 @@
       "capacity": 3,
       "floor_level": [
         0
-      ]
+      ],
+      "safe": true
+    },
+    {
+      "id": 2,
+      "x": 139.0,
+      "y": 840.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 52,
+      "x": 838.0,
+      "y": 590.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 16,
+      "x": 645.0,
+      "y": 678.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 5,
+      "x": 373.0,
+      "y": 834.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 1,
+      "x": 79.0,
+      "y": 844.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 39,
+      "x": 288.0,
+      "y": 292.0,
+      "node_type": "bathroom",
+      "current_occupancy": 0,
+      "capacity": 10,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 42,
+      "x": 966.0,
+      "y": 260.0,
+      "node_type": "bathroom",
+      "current_occupancy": 0,
+      "capacity": 10,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 17,
+      "x": 690.0,
+      "y": 636.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 55,
+      "x": 379.0,
+      "y": 271.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 14,
+      "x": 308.0,
+      "y": 725.0,
+      "node_type": "bathroom",
+      "current_occupancy": 0,
+      "capacity": 10,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 36,
+      "x": 512.0,
+      "y": 250.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 7,
+      "x": 533.0,
+      "y": 839.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 35,
+      "x": 846.0,
+      "y": 121.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 4,
+      "x": 278.0,
+      "y": 833.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 31,
+      "x": 144.0,
+      "y": 272.0,
+      "node_type": "classroom",
+      "current_occupancy": 0,
+      "capacity": 50,
+      "floor_level": [
+        0
+      ],
+      "safe": true
+    },
+    {
+      "id": 12,
+      "x": 416.0,
+      "y": 643.0,
+      "node_type": "bathroom",
+      "current_occupancy": 0,
+      "capacity": 10,
+      "floor_level": [
+        0
+      ],
+      "safe": true
     }
   ],
   "arcs": [

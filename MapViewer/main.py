@@ -96,6 +96,15 @@ def configuration_completed():
     print("[INFO] Configuration completed flag file created.")
     return JSONResponse({"message": "Configuration marked as completed"})
 
+@app.get("/api/configuration-status")
+def configuration_status():
+    """
+    Returns { configured: true/false } depending on whether the flag file exists.
+    """
+    flag_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config_completed.flag")
+    status = os.path.exists(flag_path)
+    return JSONResponse({"configured": status})
+
 def preload_graphs():
     conn = psycopg2.connect(**DATABASE_CONFIG)
     cur = conn.cursor()

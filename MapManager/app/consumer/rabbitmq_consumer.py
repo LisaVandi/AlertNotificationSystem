@@ -37,6 +37,13 @@ class EvacuationConsumer:
                 logger.error("Missing event type in message")
                 return
             nodes_in_alert = []
+            # update 'safe' label in DB and for users
+            conn = psycopg2.connect(**DATABASE_CONFIG)
+            cur = conn.cursor()
+            # reset all nodes to safe=true
+            cur.execute("UPDATE nodes SET safe = TRUE;")
+            # reset user danger flags for safety
+            cur.execute("UPDATE current_position SET danger = FALSE;")
 
             for entry in dangerous_nodes:
                 node_id = entry.get("node_id")
@@ -44,10 +51,21 @@ class EvacuationConsumer:
                     continue
                 try:
                     numeric_id = int(node_id)
+                    # set safe=false for this node
+                    cur.execute("UPDATE nodes SET safe = FALSE WHERE node_id = %s;", (numeric_id,))
                     nodes_in_alert.append(numeric_id)
+                    # users in danger
+                    for uid in entry.get("users", []):
+                        try:
+                            cur.execute("UPDATE current_position SET danger = TRUE WHERE user_id = %s;", (int(uid),))
+                        except:
+                            logger.warning(f"Cannot mark danger for user {uid}")
                 except ValueError:
                     logger.warning(f"Invalid node_id format: {node_id}")
                     continue
+            conn.commit()
+            cur.close() 
+            conn.close()
 
             if not nodes_in_alert:
                 logger.warning("No valid node IDs found to process.")

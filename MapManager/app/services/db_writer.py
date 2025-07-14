@@ -16,6 +16,7 @@ def update_node_evacuation_path(node_id: int, arc_path: list[int]):
     """
     
     arc_path_clean = [int(a) for a in arc_path if a is not None]
+    next_arc = arc_path_clean[0] if arc_path_clean else None
 
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG)
@@ -23,9 +24,15 @@ def update_node_evacuation_path(node_id: int, arc_path: list[int]):
 
         cur.execute("""
             UPDATE nodes
-            SET evacuation_path = %s
+            SET evacuation_path = %s,
+                last_modified = NOW(),
+                last_modified_by = %s
             WHERE node_id = %s
-        """, (arc_path_clean, node_id))
+        """, (
+            [next_arc] if next_arc is not None else None, 
+            'MapManager',
+            node_id
+        ))
 
         conn.commit()
         cur.close()
