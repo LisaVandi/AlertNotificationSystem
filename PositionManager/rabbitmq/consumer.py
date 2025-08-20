@@ -4,15 +4,12 @@ import time
 import threading
 from PositionManager.db.db_manager import DBManager
 from PositionManager.utils.logger import logger
-from PositionManager.utils.config_loader import ConfigLoader
-import yaml
 
 class PositionManagerConsumer:
     def __init__(self, config_file):
         self.db_manager = DBManager()
-        self.config_loader = ConfigLoader(config_file)
-        self.dispatch_threshold = self.config_loader.threshold
-        self.dispatch_interval = self.config_loader.config.get('dispatch_interval', 10)
+        self.dispatch_threshold = 100
+        self.dispatch_interval = 10
         self.processed_count = 0
         self.last_dispatch_time = time.time()
         self.last_event = None
@@ -59,25 +56,22 @@ class PositionManagerConsumer:
             z = message.get("z")
             node_id = message.get("node_id")
 
-            node_type = self.db_manager.get_node_type(node_id)
-            floor_level = self.db_manager.get_floor_level_by_node(node_id)
+            # Ottieni la label safe del nodo direttamente dal db
+            node_safe = self.db_manager.is_node_safe(node_id)
 
-            danger = self.config_loader.is_user_in_danger(
-                event,
-                {"x": x, "y": y, "z": z},
-                node_type=node_type,
-                floor_level=floor_level
-            )
+            # L'utente è in pericolo solo se il nodo non è sicuro
+            danger = not node_safe
 
             if danger and self._stop_sent:
                 logger.info("New user in danger detected — resetting STOP flag.")
                 self._stop_sent = False
 
+            # Aggiorna la posizione corrente e quella storica nel db con il flag danger calcolato
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
             self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
 
             safe = self.db_manager.is_everyone_safe()
-            logger.info(f"is_everyone_safe = {safe}, _stop_sent = {getattr(self, '_stop_sent', False)}")        
+            logger.info(f"is_everyone_safe = {safe}, _stop_sent = {getattr(self, '_stop_sent', False)}")
 
             if safe and not getattr(self, "_stop_sent", False):
                 self.send_stop_message()
@@ -91,6 +85,7 @@ class PositionManagerConsumer:
 
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
+
 
     def send_aggregated_data(self, only_to_map_manager=False):
         aggregated_data = self.aggregate_current_positions()
@@ -108,7 +103,7 @@ class PositionManagerConsumer:
         if only_to_map_manager:
             return
 
-        evacuation_data = self.get_evacuation_data()
+        evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
         logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2) if evacuation_data else 'STOP message'}")
         if evacuation_data:
@@ -236,5 +231,5 @@ class PositionManagerConsumer:
 
 
 if __name__ == "__main__":
-    consumer = PositionManagerConsumer(config_file='PositionManager/config/config.yaml')
+    consumer = PositionManagerConsumer()
     consumer.start_consuming()

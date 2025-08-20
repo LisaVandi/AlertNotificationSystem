@@ -1,4 +1,5 @@
 import psycopg2
+import time
 from PositionManager.db.db_connection import create_connection
 from PositionManager.utils.logger import logger
 
@@ -18,6 +19,8 @@ class DBManager:
         Initializes the DBManager instance by establishing a connection to the database.
         """
         self.conn = create_connection()
+        self.node_safe_cache = {}
+        self.cache_ttl = 60
 
     def upsert_current_position(self, user_id, x, y, z, node_id, danger):
         """
@@ -203,6 +206,56 @@ class DBManager:
         except Exception as e:
             logger.error(f"Failed to check danger status: {e}")
             return False  # Assume not safe if query fails
+
+    def is_node_safe(self, node_id):
+        import time
+        now = time.time()
+        if node_id in self.node_safe_cache:
+            safe, ts = self.node_safe_cache[node_id]
+            if now - ts < self.cache_ttl:
+                return safe  # ritorna valore dalla cache
+
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT safe
+                    FROM nodes
+                    WHERE node_id = %s;
+                """, (node_id,))
+                result = cursor.fetchone()
+                safe = bool(result[0]) if result else False
+                self.node_safe_cache[node_id] = (safe, now)  # aggiorna cache
+                return safe
+        except Exception as e:
+            logger.error(f"Failed to retrieve safe flag for node {node_id}: {e}")
+            return False
+
+
+    def get_aggregated_evacuation_data(self):
+        """
+        Ritorna una lista di dict con node_id, user_ids e evacuation_path.
+        """
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT cp.node_id, array_agg(cp.user_id), n.evacuation_path
+                    FROM current_position cp
+                    JOIN nodes n ON cp.node_id = n.node_id
+                    WHERE cp.danger = TRUE
+                    GROUP BY cp.node_id, n.evacuation_path;
+                """)
+                results = cursor.fetchall()
+                return [
+                    {
+                        "node_id": node_id,
+                        "user_ids": user_ids,
+                        "evacuation_path": evacuation_path
+                    }
+                    for node_id, user_ids, evacuation_path in results
+                ]
+        except Exception as e:
+            logger.error(f"Failed to get aggregated evacuation data: {e}")
+            return []
 
 
     def close(self):
