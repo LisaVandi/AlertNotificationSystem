@@ -11,11 +11,11 @@ processes = {}
 
 SERVICES = {
     "MapViewer":        ["uvicorn", "MapViewer.main:app", "--reload"],
+    "UserSimulator":    ["uvicorn", "UserSimulator.main:app", "--reload", "--port", "8001"],
     "AlertManager":     ["python", "AlertManager/main.py"],
     "PositionManager":  ["python", "PositionManager/main.py"],
     "NotificationCenter":["python", "-m", "NotificationCenter.main"],
-    "UserSimulator":    ["uvicorn", "UserSimulator.main:app", "--reload", "--port", "8001"],
-    "MapManager":       ["python", "-m", "MapManager.main"],
+    "MapManager":       ["python", "-m", "MapManager.main"]
 }
 
 monitor_targets = [
@@ -46,7 +46,7 @@ def wait_for_configuration_flag():
     if shutdown_event.is_set():
         return
 
-    for svc in ("AlertManager", "PositionManager", "NotificationCenter", "UserSimulator", "MapManager"):
+    for svc in ("UserSimulator", "AlertManager", "PositionManager", "NotificationCenter", "MapManager"):
         run_process(svc, SERVICES[svc])
 
 def monitor_logs():
