@@ -22,7 +22,7 @@ monitor_targets = [
     {
         "name": "NotificationCenter",
         "log_file":  os.path.join(BASE_DIR, "NotificationCenter", "logs", "alertConsumer.log"),
-        "trigger_text": '"msgType": "Cancel"'
+        "trigger_text": '"msgType": "Stop"'
     },
     {
         "name": "PositionManager",

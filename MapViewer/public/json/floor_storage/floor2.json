@@ -16,6 +16,18 @@
       "safe": true
     },
     {
+      "id": 175,
+      "x": 496.0,
+      "y": 710.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        2
+      ],
+      "safe": true
+    },
+    {
       "id": 194,
       "x": 194.0,
       "y": 100.0,
@@ -180,9 +192,9 @@
       "safe": true
     },
     {
-      "id": 177,
-      "x": 935.0,
-      "y": 598.0,
+      "id": 181,
+      "x": 891.0,
+      "y": 423.0,
       "node_type": "office",
       "current_occupancy": 0,
       "capacity": 3,
@@ -192,76 +204,12 @@
       "safe": true
     },
     {
-      "id": 96,
-      "x": 300.0,
-      "y": 706.0,
-      "node_type": "stairs",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0,
-        1,
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 187,
-      "x": 743.0,
-      "y": 126.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 37,
+      "id": 167,
       "x": 299.0,
-      "y": 221.0,
-      "node_type": "stairs",
-      "current_occupancy": 0,
-      "capacity": 100,
-      "floor_level": [
-        0,
-        1,
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 193,
-      "x": 289.0,
-      "y": 244.0,
+      "y": 702.0,
       "node_type": "bathroom",
       "current_occupancy": 0,
       "capacity": 10,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 186,
-      "x": 818.0,
-      "y": 202.0,
-      "node_type": "bathroom",
-      "current_occupancy": 1,
-      "capacity": 10,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 197,
-      "x": 337.0,
-      "y": 167.0,
-      "node_type": "corridor",
-      "current_occupancy": 0,
-      "capacity": 100,
       "floor_level": [
         2
       ],
@@ -328,9 +276,9 @@
       "safe": true
     },
     {
-      "id": 168,
-      "x": 515.0,
-      "y": 659.0,
+      "id": 184,
+      "x": 946.0,
+      "y": 86.0,
       "node_type": "office",
       "current_occupancy": 0,
       "capacity": 3,
@@ -340,9 +288,21 @@
       "safe": true
     },
     {
-      "id": 184,
-      "x": 946.0,
-      "y": 86.0,
+      "id": 190,
+      "x": 526.0,
+      "y": 121.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 168,
+      "x": 515.0,
+      "y": 659.0,
       "node_type": "office",
       "current_occupancy": 0,
       "capacity": 3,
@@ -380,12 +340,24 @@
       "safe": true
     },
     {
-      "id": 190,
-      "x": 526.0,
-      "y": 121.0,
-      "node_type": "office",
+      "id": 186,
+      "x": 818.0,
+      "y": 202.0,
+      "node_type": "bathroom",
       "current_occupancy": 0,
-      "capacity": 3,
+      "capacity": 10,
+      "floor_level": [
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 197,
+      "x": 337.0,
+      "y": 167.0,
+      "node_type": "corridor",
+      "current_occupancy": 0,
+      "capacity": 100,
       "floor_level": [
         2
       ],
@@ -454,6 +426,44 @@
       "safe": true
     },
     {
+      "id": 177,
+      "x": 935.0,
+      "y": 598.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 96,
+      "x": 300.0,
+      "y": 706.0,
+      "node_type": "stairs",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0,
+        1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 187,
+      "x": 743.0,
+      "y": 126.0,
+      "node_type": "office",
+      "current_occupancy": 0,
+      "capacity": 3,
+      "floor_level": [
+        2
+      ],
+      "safe": true
+    },
+    {
       "id": 198,
       "x": 551.0,
       "y": 173.0,
@@ -475,6 +485,32 @@
       "floor_level": [
         0,
         1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 37,
+      "x": 299.0,
+      "y": 221.0,
+      "node_type": "stairs",
+      "current_occupancy": 0,
+      "capacity": 100,
+      "floor_level": [
+        0,
+        1,
+        2
+      ],
+      "safe": true
+    },
+    {
+      "id": 193,
+      "x": 289.0,
+      "y": 244.0,
+      "node_type": "bathroom",
+      "current_occupancy": 0,
+      "capacity": 10,
+      "floor_level": [
         2
       ],
       "safe": true
@@ -504,42 +540,6 @@
       "safe": true
     },
     {
-      "id": 181,
-      "x": 891.0,
-      "y": 423.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 167,
-      "x": 299.0,
-      "y": 702.0,
-      "node_type": "bathroom",
-      "current_occupancy": 0,
-      "capacity": 10,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
-      "id": 175,
-      "x": 496.0,
-      "y": 710.0,
-      "node_type": "office",
-      "current_occupancy": 0,
-      "capacity": 3,
-      "floor_level": [
-        2
-      ],
-      "safe": true
-    },
-    {
       "id": 196,
       "x": 224.0,
       "y": 258.0,
@@ -561,6 +561,16 @@
       "y1": 218,
       "x2": 337,
       "y2": 167,
+      "active": true
+    },
+    {
+      "arc_id": 156,
+      "from": 175,
+      "to": 200,
+      "x1": 496,
+      "y1": 710,
+      "x2": 640,
+      "y2": 702,
       "active": true
     },
     {
@@ -654,43 +664,23 @@
       "active": true
     },
     {
-      "arc_id": 135,
-      "from": 187,
-      "to": 198,
-      "x1": 743,
-      "y1": 126,
-      "x2": 551,
-      "y2": 173,
+      "arc_id": 145,
+      "from": 181,
+      "to": 199,
+      "x1": 891,
+      "y1": 423,
+      "x2": 882,
+      "y2": 561,
       "active": true
     },
     {
-      "arc_id": 129,
-      "from": 193,
-      "to": 197,
-      "x1": 289,
-      "y1": 244,
-      "x2": 337,
-      "y2": 167,
-      "active": true
-    },
-    {
-      "arc_id": 138,
-      "from": 186,
-      "to": 198,
-      "x1": 818,
-      "y1": 202,
-      "x2": 551,
-      "y2": 173,
-      "active": true
-    },
-    {
-      "arc_id": 132,
-      "from": 197,
-      "to": 198,
-      "x1": 337,
-      "y1": 167,
-      "x2": 551,
-      "y2": 173,
+      "arc_id": 160,
+      "from": 167,
+      "to": 200,
+      "x1": 299,
+      "y1": 702,
+      "x2": 640,
+      "y2": 702,
       "active": true
     },
     {
@@ -754,6 +744,16 @@
       "active": true
     },
     {
+      "arc_id": 134,
+      "from": 190,
+      "to": 198,
+      "x1": 526,
+      "y1": 121,
+      "x2": 551,
+      "y2": 173,
+      "active": true
+    },
+    {
       "arc_id": 155,
       "from": 168,
       "to": 200,
@@ -774,11 +774,21 @@
       "active": true
     },
     {
-      "arc_id": 134,
-      "from": 190,
+      "arc_id": 138,
+      "from": 186,
       "to": 198,
-      "x1": 526,
-      "y1": 121,
+      "x1": 818,
+      "y1": 202,
+      "x2": 551,
+      "y2": 173,
+      "active": true
+    },
+    {
+      "arc_id": 132,
+      "from": 197,
+      "to": 198,
+      "x1": 337,
+      "y1": 167,
       "x2": 551,
       "y2": 173,
       "active": true
@@ -811,6 +821,16 @@
       "y1": 561,
       "x2": 935,
       "y2": 598,
+      "active": true
+    },
+    {
+      "arc_id": 135,
+      "from": 187,
+      "to": 198,
+      "x1": 743,
+      "y1": 126,
+      "x2": 551,
+      "y2": 173,
       "active": true
     },
     {
@@ -864,6 +884,16 @@
       "active": true
     },
     {
+      "arc_id": 129,
+      "from": 193,
+      "to": 197,
+      "x1": 289,
+      "y1": 244,
+      "x2": 337,
+      "y2": 167,
+      "active": true
+    },
+    {
       "arc_id": 131,
       "from": 191,
       "to": 197,
@@ -879,36 +909,6 @@
       "to": 200,
       "x1": 697,
       "y1": 707,
-      "x2": 640,
-      "y2": 702,
-      "active": true
-    },
-    {
-      "arc_id": 145,
-      "from": 181,
-      "to": 199,
-      "x1": 891,
-      "y1": 423,
-      "x2": 882,
-      "y2": 561,
-      "active": true
-    },
-    {
-      "arc_id": 160,
-      "from": 167,
-      "to": 200,
-      "x1": 299,
-      "y1": 702,
-      "x2": 640,
-      "y2": 702,
-      "active": true
-    },
-    {
-      "arc_id": 156,
-      "from": 175,
-      "to": 200,
-      "x1": 496,
-      "y1": 710,
       "x2": 640,
       "y2": 702,
       "active": true

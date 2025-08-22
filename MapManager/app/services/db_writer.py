@@ -1,9 +1,9 @@
 import psycopg2
 
 from MapViewer.app.config.settings import DATABASE_CONFIG
-from MapViewer.app.config.logging import setup_logging
+from MapManager.app.config.logging import setup_logging
 
-logger = setup_logging("db_writer", "MapViewer/logs/dbWriter.log")
+logger = setup_logging("db_writer", "MapManager/logs/dbWriter.log")
 
 def update_node_evacuation_path(node_id: int, arc_path: list[int]):
     """

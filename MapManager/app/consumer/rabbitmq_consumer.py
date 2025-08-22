@@ -1,12 +1,14 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import psycopg2
 
 from MapViewer.app.config.settings import DATABASE_CONFIG
+
 from MapManager.app.core.manager import handle_evacuations
 from MapManager.app.config.logging import setup_logging
+from MapManager.app.config.settings import MAP_MANAGER_QUEUE
+
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
-from NotificationCenter.app.config.settings import MAP_MANAGER_QUEUE
 
 logger = setup_logging("evacuation_consumer", "MapManager/logs/evacuationConsumer.log")
 
@@ -17,11 +19,11 @@ class EvacuationConsumer:
 
     def start_consuming(self):
         """Start consuming messages from the MAP_MANAGER_QUEUE"""
+        logger.info("Started consuming on MAP_MANAGER_QUEUE")
         self.rabbitmq.consume_messages(
             queue_name=MAP_MANAGER_QUEUE,
             callback=self.process_message
         )
-        logger.info("Started consuming on MAP_MANAGER_QUEUE")
 
     def process_message(self, message: Dict[str, Any]):
         try:
@@ -32,7 +34,7 @@ class EvacuationConsumer:
                 logger.warning("No dangerous nodes found in message.")
                 return
             
-            event_type = message.get("event")
+            event_type = message.get("event") or "Earthquake" # VERIFICA !!!
             if event_type is None:
                 logger.error("Missing event type in message")
                 return
@@ -55,7 +57,7 @@ class EvacuationConsumer:
                     cur.execute("UPDATE nodes SET safe = FALSE WHERE node_id = %s;", (numeric_id,))
                     nodes_in_alert.append(numeric_id)
                     # users in danger
-                    for uid in entry.get("users", []):
+                    for uid in (entry.get("user_ids") or entry.get("users") or []):
                         try:
                             cur.execute("UPDATE current_position SET danger = TRUE WHERE user_id = %s;", (int(uid),))
                         except:
@@ -71,20 +73,28 @@ class EvacuationConsumer:
                 logger.warning("No valid node IDs found to process.")
                 return
 
-            floor_level = self.get_floor_level(nodes_in_alert[0])
-            if floor_level is None:
-                logger.warning("Cannot determine floor level from node.")
+            floor_groups: Dict[int, List[int]] = {}
+            for nid in nodes_in_alert:
+                levels = self.get_floor_level(nid)  # può essere lista (scale) o int
+                if levels is None:
+                    continue
+                if not isinstance(levels, list):
+                    levels = [levels]
+                for f in levels:
+                    floor_groups.setdefault(f, []).append(nid)
+
+            if not floor_groups:
+                logger.warning("No floors to process.")
                 return
 
-            handle_evacuations(floor_level, nodes_in_alert, event_type, rabbitmq_handler=self.rabbitmq)
-
-            logger.info("Evacuation handled successfully.")
-
+            for f, group in floor_groups.items():
+                handle_evacuations(f, group, event_type, rabbitmq_handler=self.rabbitmq)
+                
         except Exception as e:
             logger.error(f"Error processing message: {str(e)}")
             raise
 
-    def get_floor_level(self, node_id: int) -> int:
+    def get_floor_level(self, node_id: int) -> Optional[List[int]]:
         """Retrieve floor level from DB for a given node ID"""
         try:
             conn = psycopg2.connect(**DATABASE_CONFIG)

@@ -1,5 +1,5 @@
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
-from NotificationCenter.app.config.settings import ACK_EVACUATION_QUEUE
+from MapManager.app.config.settings import ACK_EVACUATION_QUEUE
 
 def publish_paths_ready(rabbit: RabbitMQHandler) -> None:
     """

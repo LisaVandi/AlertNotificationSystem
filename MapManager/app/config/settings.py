@@ -15,3 +15,6 @@ STAIR_CONFIG = {
     "max_connected_floors": 3,  
     "traversal_time_per_floor": 30  
 }
+
+MAP_MANAGER_QUEUE = "map_manager_queue"
+ACK_EVACUATION_QUEUE = "ack_evacuation_computed"

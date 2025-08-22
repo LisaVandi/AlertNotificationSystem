@@ -87,7 +87,7 @@ class RabbitMQHandler:
                 logger.info("Received ALERT message.")
                 self.simulator.handle_alert(message)
 
-            elif msg_type == "Stop":
+            elif msg_type == "stop":
                 logger.info("Received STOP message.")
                 self.simulator.handle_stop()
 

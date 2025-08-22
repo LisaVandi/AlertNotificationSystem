@@ -21,6 +21,7 @@ class PositionManagerConsumer:
         self.channel.queue_declare(queue='position_queue', durable=True)
         self.channel.queue_declare(queue='map_manager_queue', durable=True)
         self.channel.queue_declare(queue='evacuation_paths_queue', durable=True)
+        self.channel.queue_declare(queue='alerted_users_queue', durable=True)
 
         # Seconda connessione per ack_evacuation_computed
         self.ack_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -109,11 +110,11 @@ class PositionManagerConsumer:
         if evacuation_data:
             self.channel.basic_publish(
                 exchange='',
-                routing_key='evacuation_paths_queue',
+                routing_key='alerted_users_queue', 
                 body=json.dumps(evacuation_data),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
-            logger.info("Sent evacuation data to evacuation_paths_queue.")
+            logger.info("Sent evacuation data to alerted_users_queue.")
         else:
             self.send_stop_message()
 
@@ -209,11 +210,11 @@ class PositionManagerConsumer:
             logger.info(f"Evacuation data being sent:\n{json.dumps(formatted_data, indent=2)}")
             self.channel.basic_publish(
                 exchange='',
-                routing_key='evacuation_paths_queue',
+                routing_key='alerted_users_queue',
                 body=json.dumps(formatted_data),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
-            logger.info("Sent aggregated evacuation data to evacuation_paths_queue.")
+            logger.info("Sent aggregated evacuation data to alerted_users_queue.")
         except Exception as e:
             logger.error(f"Failed to send evacuation data: {e}")
 
@@ -221,11 +222,11 @@ class PositionManagerConsumer:
         try:
             self.channel.basic_publish(
                 exchange='',
-                routing_key='evacuation_paths_queue',
+                routing_key='alerted_users_queue',
                 body=json.dumps({"msgType": "Stop"}),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
-            logger.info("Sent stop message to evacuation_paths_queue.")
+            logger.info("Sent stop message to alerted_users_queue.")
         except Exception as e:
             logger.error(f"Failed to send stop message: {e}")
 

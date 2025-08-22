@@ -18,7 +18,6 @@ class GraphManager:
 
     def get_graph(self, floor_level):
         with self.lock:
-            # aggiunto
             if floor_level not in self.graphs:
                 self._load_floor_graph(floor_level)
                 
@@ -163,18 +162,21 @@ class GraphManager:
                 px_x = int(node["x"])  
                 px_y = int(node["y"])
                 
-                current_floor = node.get("floor_level", [floor_level])[0]
-                
+                floors = node.get("floor_level", [floor_level])
+                if not isinstance(floors, list):
+                    floors = [floors]
+
                 G.add_node(
                     node_id,
                     x=px_x,
                     y=px_y,
-                    floor_level=current_floor,
+                    floor_level=floors,   # <-- lista, non int
                     node_type=node.get("node_type"),
                     current_occupancy=node.get("current_occupancy", 0),
                     capacity=node.get("capacity", 0),
-                    safe=node.get("safe", True)                    
+                    safe=node.get("safe", True)
                 )
+                
             for arc in arcs:
                 from_node = arc.get("initial_node")
                 to_node = arc.get("final_node")

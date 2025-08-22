@@ -2,7 +2,7 @@ import networkx as nx
 from typing import List, Optional
 from MapManager.app.config.logging import setup_logging
 from MapManager.app.config.settings import PATHFINDING_CONFIG
-from MapViewer.app.services import graph_manager
+from MapViewer.app.services.graph_manager import graph_manager
 
 def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[int]) -> Optional[List[int]]:
     logger = setup_logging("path_calculator", "MapManager/logs/pathCalculator.log")
@@ -36,7 +36,7 @@ def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[in
         G_filtered = combined_G.copy()
         # Copy graph and filter inactive edges
         for u, v, data in list(G.edges(data=True)):
-            if not data.get("active", True):
+            if not data.get("active", True) and G_filtered.has_edge(u, v):
                 G_filtered.remove_edge(u, v)
         
         # Filter out overcrowded nodes
