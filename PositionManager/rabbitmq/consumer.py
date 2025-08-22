@@ -199,24 +199,31 @@ class PositionManagerConsumer:
         logger.info("PositionManagerConsumer started.")
         self.channel.start_consuming()
 
-    def send_evacuation_data(self, evacuation_data):
+    def send_evacuation_data(self, evacuation_data=None):
         try:
-            # Trasformo la lista di liste in lista di dict
-            formatted_data = [
-                {"user_id": item[0], "evacuation_path": item[1]}
-                for item in evacuation_data
-            ]
+            # Se i dati non sono stati passati, li recupero dal DB
+            if evacuation_data is None:
+                evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
-            logger.info(f"Evacuation data being sent:\n{json.dumps(formatted_data, indent=2)}")
+            if not evacuation_data:
+                logger.info("No evacuation data available, sending STOP message.")
+                self.send_stop_message()
+                return
+
+            # evacuation_data è già aggregato per nodo grazie a DBManager
+            logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2)}")
+
             self.channel.basic_publish(
                 exchange='',
-                routing_key='alerted_users_queue',
-                body=json.dumps(formatted_data),
+                routing_key='evacuation_paths_queue',
+                body=json.dumps(evacuation_data),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
-            logger.info("Sent aggregated evacuation data to alerted_users_queue.")
+            logger.info("Sent aggregated evacuation data to evacuation_paths_queue.")
+
         except Exception as e:
             logger.error(f"Failed to send evacuation data: {e}")
+
 
     def send_stop_message(self):
         try:
