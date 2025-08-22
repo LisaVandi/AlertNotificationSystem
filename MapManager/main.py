@@ -2,6 +2,7 @@ import signal
 import sys
 import threading
 import psycopg2
+import os
 
 from MapManager.app.consumer.rabbitmq_consumer import EvacuationConsumer
 from MapViewer.app.services.graph_manager import graph_manager
@@ -12,7 +13,9 @@ from MapViewer.app.config.settings import DATABASE_CONFIG
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 
-logger = setup_logging("map_manager_main", "MapManager/logs/mapManager.log")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+LOG_PATH = os.path.join(BASE_DIR, "logs", "mapManager.log")
+logger = setup_logging("map_manager_main", LOG_PATH)
 
 def preload_graphs():
     """

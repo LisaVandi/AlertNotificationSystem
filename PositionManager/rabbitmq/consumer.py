@@ -20,7 +20,6 @@ class PositionManagerConsumer:
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue='position_queue', durable=True)
         self.channel.queue_declare(queue='map_manager_queue', durable=True)
-        self.channel.queue_declare(queue='evacuation_paths_queue', durable=True)
         self.channel.queue_declare(queue='alerted_users_queue', durable=True)
 
         # Seconda connessione per ack_evacuation_computed
@@ -215,11 +214,11 @@ class PositionManagerConsumer:
 
             self.channel.basic_publish(
                 exchange='',
-                routing_key='evacuation_paths_queue',
+                routing_key='alerted_users_queue',
                 body=json.dumps(evacuation_data),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
-            logger.info("Sent aggregated evacuation data to evacuation_paths_queue.")
+            logger.info("Sent aggregated evacuation data to alerted_users_queue.")
 
         except Exception as e:
             logger.error(f"Failed to send evacuation data: {e}")

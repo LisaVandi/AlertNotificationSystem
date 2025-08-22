@@ -1,8 +1,9 @@
 from typing import List
 import yaml
 import psycopg2
+import os
+from pathlib import Path
 
-from MapManager.app.config.settings import PATHFINDING_CONFIG
 from MapManager.app.services.db_reader import get_arc_final_node
 from MapManager.app.services.path_calculator import find_shortest_path_to_exit
 from MapManager.app.services.db_writer import update_node_evacuation_path
@@ -20,7 +21,6 @@ with open(CONFIG_PATH, "r") as f:
 logger.info(f"Loaded emergency types: {list(emergency_config.get('emergencies', {}).keys())}")
 
 outdoor_events = {"Earthquake", "Hazardous Material", "Severe Weather", "Power Outage"}
-
 
 def initialize_evacuation_paths(floor_level: int, event_type: str):
     logger.info(f"Initializing evacuation paths for floor {floor_level} with event {event_type}")
