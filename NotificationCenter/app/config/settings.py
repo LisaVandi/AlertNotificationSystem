@@ -8,6 +8,9 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
 # Queue for receiving alerts from the Alert Manager to the Notification Center
 ALERT_QUEUE = "alert_queue"
 
+# Queue for sending alerts from the Notification Center to the Map Manager
+MAP_ALERTS_QUEUE = "map_alerts_queue"
+
 # Queue for receiving aggregated user IDs based on nodes and arcs from the Position Manager
 MAP_MANAGER_QUEUE = "map_manager_queue"
 

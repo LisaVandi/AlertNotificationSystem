@@ -1,8 +1,9 @@
 import psycopg2
 from typing import List
 
-from MapManager.app.config.settings import DATABASE_CONFIG, PATHFINDING_CONFIG
+from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapViewer.app.services.graph_manager import graph_manager
+
 from MapManager.app.config.logging import setup_logging
 
 logger = setup_logging("arc_updater", "MapManager/logs/arcUpdater.log")

@@ -5,10 +5,14 @@ import psycopg2
 import os
 
 from MapManager.app.consumer.rabbitmq_consumer import EvacuationConsumer
-from MapViewer.app.services.graph_manager import graph_manager
+from MapManager.app.consumer.alert_consumer import AlertConsumer
+
 from MapManager.app.core.manager import initialize_evacuation_paths
 from MapManager.app.config.logging import setup_logging
-from MapManager.app.config.settings import MAP_MANAGER_QUEUE, RABBITMQ_CONFIG
+
+from MapManager.app.config.settings import MAP_ALERTS_QUEUE, MAP_MANAGER_QUEUE, RABBITMQ_CONFIG
+
+from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG   
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
@@ -54,7 +58,7 @@ def preload_graphs():
                 })
 
             cur.execute("""
-                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
+                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time
                 FROM arcs
                 WHERE initial_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))
                 AND final_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))
@@ -63,7 +67,7 @@ def preload_graphs():
 
             arcs = []
             for r in arc_rows:
-                arc_id, initial_node, final_node, x1, y1, x2, y2, active = r
+                arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time = r
                 arcs.append({
                     "arc_id": arc_id,
                     "initial_node": initial_node,
@@ -72,7 +76,8 @@ def preload_graphs():
                     "y1": y1,
                     "x2": x2,
                     "y2": y2,
-                    "active": active
+                    "active": active,
+                    "traversal_time": traversal_time
                 })
 
             graph_manager.load_graph(floor, nodes, arcs)
@@ -104,6 +109,23 @@ def run_evacuation_consumer():
         logger.error(f"Errore in run_evacuation_consumer: {e}")
         rabbit1.close()
         raise
+    
+def run_alert_consumer():
+    try:
+        rabbit2 = RabbitMQHandler(
+            host=RABBITMQ_CONFIG["host"],
+            port=RABBITMQ_CONFIG["port"],
+            username=RABBITMQ_CONFIG["username"],
+            password=RABBITMQ_CONFIG["password"]
+        )
+        rabbit2.declare_queue(MAP_ALERTS_QUEUE)   
+        logger.info("RabbitMQHandler (AlertConsumer) inizializzato")
+        alert_consumer = AlertConsumer(rabbit2)
+        alert_consumer.start_consuming()
+    except Exception as e:
+        logger.error(f"Errore in run_alert_consumer: {e}")
+        rabbit2.close()
+        raise
 
 def graceful_shutdown(signum, frame):
     logger.info("Shutdown initiated, exiting...")
@@ -127,12 +149,20 @@ def main():
         name="Thread-EvacuationConsumer",
         daemon=True
     )
+    
+    t2 = threading.Thread(
+        target=run_alert_consumer,
+        name="Thread-AlertConsumer",
+        daemon=True
+    )
 
     t1.start()
+    t2.start()
     
-    logger.info("Consumer avviato in thread separato.")
+    logger.info("Consumers avviati in thread separati.")
     t1.join()
-    
+    t2.join()
+
 if __name__ == "__main__":
     main()
 

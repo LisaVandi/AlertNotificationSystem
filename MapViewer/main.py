@@ -7,7 +7,7 @@ import re
 import asyncio
 import httpx
 
-from fastapi import FastAPI, Body, Query, HTTPException, Response
+from fastapi import FastAPI, Body, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,11 +18,10 @@ from datetime import datetime
 
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
-from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES
-from MapViewer.db.db_connection import create_connection
+from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES, Z_RANGES, SCALE_CONFIG
+# from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 from MapViewer.app.services.height_mapper import HeightMapper
-from MapViewer.app.config.settings import Z_RANGES, SCALE_CONFIG
 
 USER_SIMULATOR_URL = "http://localhost:8001" 
 height_mapper = HeightMapper(Z_RANGES, SCALE_CONFIG)
@@ -63,6 +62,17 @@ async def clear_positions_on_startup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    try:
+        create_tables()
+    except Exception as e:
+        print(f"[FATAL] create_tables() failed: {e}")
+        raise
+
+    try:
+        preload_graphs()
+    except Exception as e:
+        print(f"[WARN] preload_graphs() failed: {e}")
+    
     # Clear positions on startup
     await clear_positions_on_startup()
     yield
@@ -76,17 +86,12 @@ app.add_middleware(
     allow_methods=["*"],            
     allow_headers=["*"],            
 )
-
-IMG_FOLDER = "MapViewer/public/img"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_FOLDER = os.path.join(BASE_DIR, "MapViewer", "public")
 JSON_OUTPUT_FOLDER = os.path.join(PUBLIC_FOLDER, "json")
+IMG_FOLDER = os.path.join(PUBLIC_FOLDER, "img")
 
 app.mount("/static", StaticFiles(directory=PUBLIC_FOLDER), name="static")
-
-conn = create_connection()
-create_tables()
-conn.close()
 
 @app.post("/api/configuration-completed")
 def configuration_completed():
@@ -138,7 +143,7 @@ def preload_graphs():
                 })
 
             cur.execute("""
-                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
+                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time
                 FROM arcs
                 WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
                 AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
@@ -148,7 +153,7 @@ def preload_graphs():
 
             arcs = []
             for r in arc_rows:
-                arc_id, initial_node, final_node, x1, y1, x2, y2, active = r
+                arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time = r
                 arcs.append({
                     "arc_id": arc_id,
                     "initial_node": initial_node,
@@ -157,7 +162,8 @@ def preload_graphs():
                     "y1": y1,
                     "x2": x2,
                     "y2": y2,
-                    "active": active
+                    "active": active,
+                    "traversal_time": traversal_time
                 })
 
             graph_manager.load_graph(floor, nodes, arcs)
@@ -165,7 +171,7 @@ def preload_graphs():
         cur.close()
         conn.close()
 
-preload_graphs()
+# preload_graphs()
 
 @app.get("/api/images")
 def list_images():
@@ -228,8 +234,6 @@ def get_graph(floor: int):
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
-        
-        # WHERE floor_level = %s
         cur.execute("""
             SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
             FROM nodes WHERE %s = ANY(floor_level)
@@ -237,12 +241,12 @@ def get_graph(floor: int):
         nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
 
         cur.execute("""
-            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active
+            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time
             FROM arcs
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
             AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
         """, (floor, floor))
-        arcs = [{"arc_id": r[0], "from": r[1], "to": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7] } for r in cur.fetchall()]
+        arcs = [{"arc_id": r[0], "from": r[1], "to": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7], "traversal_time": r[8]} for r in cur.fetchall()]
           
         with graph_manager.lock:
             if floor not in graph_manager.graphs:

@@ -46,7 +46,7 @@ def wait_for_configuration_flag():
     if shutdown_event.is_set():
         return
 
-    for svc in ("UserSimulator", "AlertManager", "PositionManager", "NotificationCenter", "MapManager"):
+    for svc in ("UserSimulator", "AlertManager", "MapManager", "PositionManager", "NotificationCenter"):
         run_process(svc, SERVICES[svc])
 
 def monitor_logs():

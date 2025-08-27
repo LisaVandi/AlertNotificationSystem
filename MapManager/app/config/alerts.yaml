@@ -1,0 +1,32 @@
+emergencies:
+  Earthquake:
+    type: all
+    safe_node_type: "outdoor"
+
+  Hazardous Material:
+    type: all
+    safe_node_type: "outdoor"
+
+  Severe Weather:
+    type: all
+    safe_node_type: "outdoor"
+
+  Power Outage:
+    type: all
+    safe_node_type: "outdoor"
+
+  Flood:
+    type: floor
+    danger_floors: [0]
+    safe_node_type: "stairs"   
+
+  Fire:
+    type: zone
+    danger_zone:
+      x1: 100    # left
+      x2: 500    # right
+      y1: 100    # bottom
+      y2: 500    # top
+      z1: 0      # piano minimo (inclusivo)
+      z2: 1      # piano massimo (inclusivo)
+    safe_node_type: "outdoor"

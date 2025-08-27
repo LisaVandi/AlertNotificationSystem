@@ -12,7 +12,7 @@ Returns a connection object if successful, or logs an error and returns None if 
 
 import psycopg2
 from MapViewer.app.config.settings import DATABASE_CONFIG
-from NotificationCenter.app.config.logging import setup_logging
+from MapViewer.app.config.logging import setup_logging
 
 # Logging configuration
 logger = setup_logging("MapViewer_dbconnection", "MapViewer/logs/dbWriter.log")

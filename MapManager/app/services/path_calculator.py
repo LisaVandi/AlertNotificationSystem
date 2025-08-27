@@ -6,7 +6,7 @@ from MapViewer.app.services.graph_manager import graph_manager
 
 def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[int]) -> Optional[List[int]]:
     logger = setup_logging("path_calculator", "MapManager/logs/pathCalculator.log")
-    
+
     if start_node not in G:
         logger.info(f"Start node {start_node} not in graph")
         return None
@@ -14,37 +14,34 @@ def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[in
     try:
         start_floor = G.nodes[start_node].get("floor_level")[0]
         combined_G = G.copy()
+
+        # Unisci i grafi dei piani connessi tramite scale presenti sul piano di partenza
         stair_nodes = [
-            n for n, d in G.nodes(data=True) 
+            n for n, d in G.nodes(data=True)
             if d.get("node_type") == "stairs"
-               and isinstance(d.get("floor_level"), list)
-               and len(d["floor_level"]) >= 2
-               and start_floor in d["floor_level"]
+            and isinstance(d.get("floor_level"), list)
+            and len(d["floor_level"]) >= 2
+            and start_floor in d["floor_level"]
         ]
-        
         for stair_node in stair_nodes:
             connected_floors = G.nodes[stair_node].get("floor_level", [])
             for floor in connected_floors:
                 if floor != start_floor:
-                    # Load the graph of the connected floor
                     floor_graph = graph_manager.get_graph(floor)
                     if floor_graph:
-                        # Add nodes and edges of the connected floor
                         combined_G.add_nodes_from(floor_graph.nodes(data=True))
                         combined_G.add_edges_from(floor_graph.edges(data=True))
-        
+
+        # Filtra gli archi inattivi sul grafo combinato
         G_filtered = combined_G.copy()
-        # Copy graph and filter inactive edges
-        for u, v, data in list(G.edges(data=True)):
+        for u, v, data in list(combined_G.edges(data=True)):
             if not data.get("active", True) and G_filtered.has_edge(u, v):
                 G_filtered.remove_edge(u, v)
-        
-        # Filter out overcrowded nodes
+
+        # Rimuovi nodi sovraffollati
         max_node_capacity = PATHFINDING_CONFIG.get("max_node_capacity", float('inf'))
-        overcrowded = [
-            n for n, d in G_filtered.nodes(data=True)
-            if d.get("current_occupancy", 0) >= max_node_capacity
-        ]
+        overcrowded = [n for n, d in G_filtered.nodes(data=True)
+                       if d.get("current_occupancy", 0) >= max_node_capacity]
         if overcrowded:
             logger.info(f"Removing overcrowded nodes: {overcrowded}")
             G_filtered.remove_nodes_from(overcrowded)
@@ -58,36 +55,30 @@ def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[in
             if target not in G_filtered:
                 logger.info(f"Target node {target} not in filtered graph")
                 continue
-            try:
-                # Compute shortest path by traversal_time
-                node_path = nx.dijkstra_path(
-                    G_filtered, source=start_node, target=target, weight="traversal_time"
-                )
-                
-                path_floors = set()
-                for n in node_path:
-                    path_floors.update(G_filtered.nodes[n].get("floor_level", []))
-                
-                if len(path_floors) > 1:
-                    logger.info(f"Evacuation path crosses floors: {path_floors}")
-                
-                total_len = nx.dijkstra_path_length(
-                    G_filtered, source=start_node, target=target, weight="traversal_time"
-                )
 
-                # Extract arc IDs
-                arc_path = []
+            try:
+                node_path = nx.dijkstra_path(G_filtered, source=start_node, target=target, weight="traversal_time")
+                total_len = nx.dijkstra_path_length(G_filtered, source=start_node, target=target, weight="traversal_time")
+
+                # Estrai gli arc_id dal grafo filtrato (che contiene anche archi di altri piani)
+                arc_path: List[int] = []
                 for i in range(len(node_path) - 1):
-                    u = node_path[i]
-                    v = node_path[i+1]
-                    arc_data = G.get_edge_data(u, v) or G.get_edge_data(v, u)
-                    if arc_data is None or "arc_id" not in arc_data:
+                    u, v = node_path[i], node_path[i+1]
+                    # edge_data può essere dict o dict-of-dict se multigraph: gestiamo il caso semplice
+                    edge_data = G_filtered.get_edge_data(u, v)
+                    if not edge_data:
+                        # prova direzione opposta
+                        edge_data = G_filtered.get_edge_data(v, u)
+                    if not edge_data:
                         continue
-                    arc_path.append(arc_data["arc_id"])
+                    # edge_data potrebbe essere p.es. {"arc_id": 12, "active": True, ...}
+                    arc_id = edge_data.get("arc_id")
+                    if arc_id is not None:
+                        arc_path.append(int(arc_id))
 
                 logger.info(f"Found path from {start_node} to {target}: {node_path} with length {total_len}")
 
-                if total_len < shortest_length:
+                if total_len < shortest_length and arc_path:
                     shortest_arc_path = arc_path
                     shortest_length = total_len
 

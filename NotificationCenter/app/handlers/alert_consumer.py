@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.config.settings import ALERT_QUEUE
-from NotificationCenter.app.handlers.alert_smister_to_user_simulator import send_alert_to_user_simulator
+from NotificationCenter.app.handlers.alert_smister_to_user_simulator import send_alert_to_user_simulator, send_alert_to_map_manager
 from NotificationCenter.app.config.logging import setup_logging
 
 logger = setup_logging("alert_consumer", "NotificationCenter/logs/alertConsumer.log")
@@ -28,14 +28,16 @@ class AlertConsumer:
             alert_identifier = alert_data.get("identifier")
             
             if msg_type in ["Alert", "Update"]:
+                send_alert_to_map_manager(self.rabbitmq, alert_data)
                 send_alert_to_user_simulator(self.rabbitmq, alert_data) 
             elif msg_type == "Cancel":
                 stop_message = {
                     "msgType": "Cancel",
                     "id": alert_identifier,
-                    "description": "Stop alert request from NotificationCenter"
+                    "description": "Cancel alert request from NotificationCenter"
                 }
                 send_alert_to_user_simulator(self.rabbitmq, stop_message)
+                send_alert_to_map_manager(self.rabbitmq, alert_data)
         
             logger.info("Alert processed successfully")
 

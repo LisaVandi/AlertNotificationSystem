@@ -1,3 +1,5 @@
+from pathlib import Path
+
 RABBITMQ_CONFIG = {
     "host": "localhost",
     "port": 5672, 
@@ -18,3 +20,7 @@ STAIR_CONFIG = {
 
 MAP_MANAGER_QUEUE = "map_manager_queue"
 ACK_EVACUATION_QUEUE = "ack_evacuation_computed"
+MAP_ALERTS_QUEUE = "map_alerts_queue" # Notification Center -> MapManager
+
+# Percorso assoluto al file alerts.yaml, indipendente dalla cartella da cui lanci il processo
+ALERTS_CONFIG_PATH = str(Path(__file__).with_name("alerts.yaml"))
