@@ -20,7 +20,7 @@ class DBManager:
         """
         self.conn = create_connection()
         self.node_safe_cache = {}
-        self.cache_ttl = 60
+        self.cache_ttl = 5
 
     def upsert_current_position(self, user_id, x, y, z, node_id, danger):
         """
