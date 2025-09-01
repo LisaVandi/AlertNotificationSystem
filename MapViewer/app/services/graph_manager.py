@@ -1,14 +1,27 @@
 import networkx as nx
-from threading import Lock
 import psycopg2
+
+from threading import Lock
+from datetime import timedelta
+
 from MapViewer.app.config.settings import SCALE_CONFIG, Z_RANGES, NODE_TYPES, DATABASE_CONFIG
 from MapViewer.app.services.height_mapper import HeightMapper
 
-from datetime import timedelta
+def time_str_to_seconds(time_val):
+    if isinstance(time_val, (int, float)):
+        return int(time_val)
+    if isinstance(time_val, timedelta):
+        return int(time_val.total_seconds())
 
-def time_str_to_seconds(time_str):
-    h, m, s = map(int, time_str.split(':'))
-    return h * 3600 + m * 60 + s
+    s = str(time_val).strip()
+    if s.isdigit():
+        return int(s)
+
+    parts = s.split(":")
+    if len(parts) == 3:
+        h, m, sec = parts
+        return int(h) * 3600 + int(m) * 60 + int(float(sec))
+    return 1
 
 class GraphManager:
     def __init__(self):

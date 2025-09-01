@@ -246,7 +246,7 @@ def get_graph(floor: int):
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
             AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
         """, (floor, floor))
-        arcs = [{"arc_id": r[0], "from": r[1], "to": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7], "traversal_time": r[8]} for r in cur.fetchall()]
+        arcs = [{"arc_id": r[0], "initial_node": r[1], "final_node": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7], "traversal_time": r[8]} for r in cur.fetchall()]
           
         with graph_manager.lock:
             if floor not in graph_manager.graphs:

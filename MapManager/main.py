@@ -58,7 +58,7 @@ def preload_graphs():
                 })
 
             cur.execute("""
-                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time
+                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time
                 FROM arcs
                 WHERE initial_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))
                 AND final_node IN (SELECT node_id FROM nodes WHERE %s = ANY(floor_level))

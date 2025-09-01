@@ -1,11 +1,11 @@
 from typing import Dict, Any, List, Union
+
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 from NotificationCenter.app.handlers.alert_smister_to_user_simulator import send_alert_to_user_simulator, send_evacuation_path_to_user_simulator
 from NotificationCenter.app.config.settings import ALERTED_USERS_QUEUE
 from NotificationCenter.app.config.logging import setup_logging
 
 logger = setup_logging("alerted_users_consumer", "NotificationCenter/logs/alertedUsersConsumer.log")
-
 
 class AlertedUsersConsumer:
     """
@@ -43,15 +43,26 @@ class AlertedUsersConsumer:
                 send_alert_to_user_simulator(self.rabbitmq, alert_data)
                 return
             
+            if (isinstance(alert_data, list) and alert_data
+            and isinstance(alert_data[0], (list, tuple))
+            and len(alert_data[0]) == 2 and isinstance(alert_data[0][1], list)):
+                logger.warning("Received floor→node list (no evacuation_path). Ignoring.")
+                return
+            
             items = alert_data if isinstance(alert_data, list) else [alert_data]
             batch = []
             for item in items:
                 if item.get("msgType") == "Stop":
                     continue
+                
                 # formato per-utente
                 if "user_id" in item and "evacuation_path" in item:
-                    batch.append({"user_id": item["user_id"], "evacuation_path": item["evacuation_path"]})
+                    batch.append({
+                        "user_id": int(item["user_id"]), 
+                        "evacuation_path": list(item["evacuation_path"])
+                    })
                     continue
+                
                 # formato per-nodo
                 node_id = item.get("node_id")
                 evac_path = item.get("evacuation_path")
@@ -60,12 +71,12 @@ class AlertedUsersConsumer:
                     logger.warning("Skipping invalid item: %s", item)
                     continue
                 for uid in user_ids:
-                    batch.append({"user_id": uid, "evacuation_path": evac_path})
+                    batch.append({"user_id": int(uid), "evacuation_path": list(evac_path)})
 
             if batch:
                 send_evacuation_path_to_user_simulator(self.rabbitmq, batch)
-                logger.info("Forwarded %d evacuation messages as a batch", len(batch))
+                logger.info("Forwarded %d evacuation messages", len(batch))
 
         except Exception as e:
             logger.error("Error processing evacuation path: %s", str(e))
-            raise
+            

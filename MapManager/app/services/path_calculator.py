@@ -4,8 +4,9 @@ from MapManager.app.config.logging import setup_logging
 from MapManager.app.config.settings import PATHFINDING_CONFIG
 from MapViewer.app.services.graph_manager import graph_manager
 
+logger = setup_logging("path_calculator", "MapManager/logs/pathCalculator.log")
+
 def find_shortest_path_to_exit(G: nx.Graph, start_node: int, exit_nodes: List[int]) -> Optional[List[int]]:
-    logger = setup_logging("path_calculator", "MapManager/logs/pathCalculator.log")
 
     if start_node not in G:
         logger.info(f"Start node {start_node} not in graph")

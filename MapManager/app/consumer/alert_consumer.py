@@ -11,7 +11,6 @@ from MapManager.app.core.event_state import set_current_event, clear_current_eve
 
 logger = setup_logging("map_alert_consumer", "MapManager/logs/alertConsumer.log")
 
-# Carico la configurazione delle emergenze una volta sola
 try:
     with open(ALERTS_CONFIG_PATH, "r", encoding="utf-8") as f:
         EMERGENCY_CFG = yaml.safe_load(f) or {}
@@ -21,9 +20,6 @@ except Exception as e:
     EMERGENCY_CFG = {"emergencies": {}}
 
 class AlertConsumer:
-    """
-    Consuma messaggi di allerta e aggiorna i flag 'safe' dei nodi secondo alerts.yaml.
-    """
     def __init__(self, rabbitmq_handler):
         self.rabbit = rabbitmq_handler
         logger.info("AlertConsumer initialized")
@@ -66,8 +62,10 @@ class AlertConsumer:
 
             etype = rule.get("type")
             safe_node_type = rule.get("safe_node_type")
+            
+            # === BASELINE: tutto SAFE=TRUE, poi applichiamo i pericoli a FALSE ===
+            set_all_safe(True)
 
-            # 1) reset coerente con il tipo di evento
             if etype == "all":
                 # tutto unsafe, poi rendi safe la tipologia indicata
                 set_all_safe(False)
