@@ -134,8 +134,11 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: str
             if saved:
                 last_arc = saved[-1]
                 final_node = get_arc_final_node(last_arc)
-                if final_node is not None and final_node == source:
-                    logger.info(f"Nodo {source} sembra essere già a destinazione, skip.")
+                # if final_node is not None and final_node == source:
+                #     logger.info(f"Nodo {source} sembra essere già a destinazione, skip.")
+                #     continue
+                if final_node is not None and final_node in safe_nodes_set:
+                    logger.info(f"Nodo {source} ha già un path verso un target (last_arc termina in target). Skip.")
                     continue
 
             path = find_shortest_path_to_exit(G, source, safe_nodes)

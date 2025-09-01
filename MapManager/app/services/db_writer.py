@@ -1,5 +1,5 @@
 import psycopg2
-from typing import List, Optional
+from typing import List
 
 from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapManager.app.config.logging import setup_logging
@@ -18,7 +18,7 @@ def update_node_evacuation_path(node_id: int, arc_path: list[int]):
     """
     
     arc_path_clean = [int(a) for a in arc_path if a is not None]
-    next_arc = arc_path_clean[0] if arc_path_clean else None
+    #next_arc = arc_path_clean[0] if arc_path_clean else None
 
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG)
@@ -31,7 +31,7 @@ def update_node_evacuation_path(node_id: int, arc_path: list[int]):
                 last_modified_by = %s
             WHERE node_id = %s
         """, (
-            [next_arc] if next_arc is not None else None, 
+            arc_path_clean if arc_path_clean else None,  
             'MapManager',
             node_id
         ))
@@ -99,7 +99,6 @@ def set_safe_by_floor(floor_level: int, safe: bool) -> int:
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
-        # '%s = ANY(floor_level)' funziona con array INT in Postgres
         cur.execute(
             "UPDATE nodes SET safe = %s WHERE %s = ANY(floor_level)",
             (safe, floor_level)
