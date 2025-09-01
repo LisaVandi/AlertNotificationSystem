@@ -2,11 +2,13 @@ import json
 import pika
 import time
 import threading
+import os
 from PositionManager.db.db_manager import DBManager
 from PositionManager.utils.logger import logger
 
+
 class PositionManagerConsumer:
-    def __init__(self, config_file):
+    def __init__(self, config_file=None):
         self.db_manager = DBManager()
         self.dispatch_threshold = 100
         self.dispatch_interval = 10
@@ -15,33 +17,52 @@ class PositionManagerConsumer:
         self.last_event = None
         self._stop_sent = False
 
+        # ---- PATCH: connessione RabbitMQ parametrizzata ----
+        creds = pika.PlainCredentials(
+            os.getenv("RABBITMQ_USER", "guest"),
+            os.getenv("RABBITMQ_PASSWORD", "guest")
+        )
+        params = pika.ConnectionParameters(
+            host=os.getenv("RABBITMQ_HOST", "localhost"),
+            port=int(os.getenv("RABBITMQ_PORT", "5672")),
+            credentials=creds,
+            heartbeat=30,
+            blocked_connection_timeout=300
+        )
+
         # Connessione principale per position_queue
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue='position_queue', durable=True)
         self.channel.queue_declare(queue='map_manager_queue', durable=True)
         self.channel.queue_declare(queue='alerted_users_queue', durable=True)
 
         # Seconda connessione per ack_evacuation_computed
-        self.ack_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.ack_connection = pika.BlockingConnection(params)
         self.ack_channel = self.ack_connection.channel()
         self.ack_channel.queue_declare(queue='ack_evacuation_computed', durable=True)
 
         # Consumers
-        self.channel.basic_consume(queue='position_queue', on_message_callback=self.process_message, auto_ack=True)
+        self.channel.basic_consume(
+            queue='position_queue',
+            on_message_callback=self.process_message,
+            auto_ack=True
+        )
 
         # Thread separati
         threading.Thread(target=self.periodic_flush, daemon=True).start()
         threading.Thread(target=self.start_ack_consumer, daemon=True).start()
 
+    # ---- PATCH: flush periodico anche senza nuove posizioni ----
     def periodic_flush(self):
         while True:
             time.sleep(1)
             now = time.time()
-            if self.processed_count > 0 and (now - self.last_dispatch_time) >= self.dispatch_interval:
-                logger.info("Triggered periodic flush.")
-                self.send_aggregated_data(only_to_map_manager=True)
-                self.processed_count = 0
+            if (now - self.last_dispatch_time) >= self.dispatch_interval:
+                if not self.db_manager.is_everyone_safe():
+                    logger.info("Periodic flush: danger detected, sending to MapManager.")
+                    self.send_aggregated_data(only_to_map_manager=True)
+                    self.processed_count = 0
                 self.last_dispatch_time = now
 
     def process_message(self, ch, method, properties, body):
@@ -66,7 +87,7 @@ class PositionManagerConsumer:
                 logger.info("New user in danger detected — resetting STOP flag.")
                 self._stop_sent = False
 
-            # Aggiorna la posizione corrente e quella storica nel db con il flag danger calcolato
+            # Aggiorna la posizione corrente e quella storica nel db
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
             self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
 
@@ -75,7 +96,7 @@ class PositionManagerConsumer:
 
             if safe and not getattr(self, "_stop_sent", False):
                 self.send_stop_message()
-                logger.info(f"Send Stop message")
+                logger.info("Send Stop message")
                 self._stop_sent = True
 
             self.processed_count += 1
@@ -85,7 +106,6 @@ class PositionManagerConsumer:
 
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
-
 
     def send_aggregated_data(self, only_to_map_manager=False):
         aggregated_data = self.aggregate_current_positions()
@@ -105,11 +125,13 @@ class PositionManagerConsumer:
 
         evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
-        logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2) if evacuation_data else 'STOP message'}")
+        logger.info(
+            f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2) if evacuation_data else 'STOP message'}"
+        )
         if evacuation_data:
             self.channel.basic_publish(
                 exchange='',
-                routing_key='alerted_users_queue', 
+                routing_key='alerted_users_queue',
                 body=json.dumps(evacuation_data),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
@@ -200,7 +222,6 @@ class PositionManagerConsumer:
 
     def send_evacuation_data(self, evacuation_data=None):
         try:
-            # Se i dati non sono stati passati, li recupero dal DB
             if evacuation_data is None:
                 evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
@@ -209,7 +230,6 @@ class PositionManagerConsumer:
                 self.send_stop_message()
                 return
 
-            # evacuation_data è già aggregato per nodo grazie a DBManager
             logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2)}")
 
             self.channel.basic_publish(
@@ -222,7 +242,6 @@ class PositionManagerConsumer:
 
         except Exception as e:
             logger.error(f"Failed to send evacuation data: {e}")
-
 
     def send_stop_message(self):
         try:
