@@ -191,13 +191,10 @@ class PositionManagerConsumer:
             msg = json.loads(body)
             if msg.get("msg_type") == "paths_ready":
                 logger.info("Received 'paths_ready' message.")
-                dangerous_users = self.db_manager.get_users_in_danger_with_paths()
-
-                if dangerous_users:
-                    logger.info("Dispatching evacuation paths.")
-                    self.send_evacuation_data(dangerous_users)
+                if not self.db_manager.is_everyone_safe():
+                    evacuation_data = self.db_manager.get_aggregated_evacuation_data()
+                    self.send_evacuation_data(evacuation_data)
                 else:
-                    logger.info("No users in danger. Sending STOP.")
                     self.send_stop_message()
             else:
                 logger.warning(f"Ignored unknown ack message type: {msg}")

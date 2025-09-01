@@ -245,17 +245,19 @@ class DBManager:
                     GROUP BY cp.node_id, n.evacuation_path;
                 """)
                 results = cursor.fetchall()
+                # Trasformo in lista di dict per garantire formato coerente
                 return [
                     {
                         "node_id": node_id,
                         "user_ids": user_ids,
-                        "evacuation_path": evacuation_path
+                        "evacuation_path": evacuation_path if isinstance(evacuation_path, list) else [evacuation_path]
                     }
                     for node_id, user_ids, evacuation_path in results
                 ]
         except Exception as e:
             logger.error(f"Failed to get aggregated evacuation data: {e}")
             return []
+
 
 
     def close(self):
