@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Set, Dict
+from collections import deque
 import psycopg2, yaml
 
 from MapViewer.app.config.settings import DATABASE_CONFIG
@@ -62,6 +63,62 @@ def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
     logger.warning(f"Tipo regola non gestito: '{etype}' per event='{event_type}'")
     return []
 
+def _floor_list(v) -> List[int]:
+    """Normalizza floor_level a lista."""
+    if v is None:
+        return []
+    return v if isinstance(v, list) else [v]
+
+def collect_reachable_floors(start_floor: int) -> Set[int]:
+    """
+    Scopre tutti i piani raggiungibili dal piano di partenza seguendo i nodi 'stairs'
+    come connettori tra piani (BFS sui piani).
+    """
+    visited: Set[int] = set()
+    q: deque[int] = deque([start_floor])
+
+    while q:
+        fl = q.popleft()
+        if fl in visited:
+            continue
+        visited.add(fl)
+
+        Gfl = graph_manager.get_graph(fl)
+        if Gfl is None:
+            continue
+
+        for n, d in Gfl.nodes(data=True):
+            if d.get("node_type") == "stairs":
+                for nf in _floor_list(d.get("floor_level")):
+                    if nf not in visited:
+                        q.append(nf)
+
+    return visited
+
+def collect_safe_nodes_multi_floor(start_floor: int, event_type: str) -> List[int]:
+    """
+    Raccoglie i target (safe nodes) su TUTTI i piani raggiungibili dal piano di partenza.
+    Deduplica preservando l'ordine di prima occorrenza.
+    """
+    floors = collect_reachable_floors(start_floor)
+    logger.debug(f"Piani raggiungibili da {start_floor}: {sorted(floors)}")
+
+    combined: List[int] = []
+    seen: Set[int] = set()
+
+    for fl in floors:
+        Gfl = graph_manager.get_graph(fl)
+        if Gfl is None:
+            continue
+        safe_on_fl = get_safe_nodes_for_event(Gfl, event_type)
+        for n in safe_on_fl:
+            if n not in seen:
+                seen.add(n)
+                combined.append(n)
+
+    logger.info(f"Target multi-piano per event={event_type} da floor={start_floor}: {combined}")
+    return combined
+
 def initialize_evacuation_paths(floor_level: int):
     """
     Inizializza gli evacuation_path per i nodi del piano:
@@ -87,18 +144,6 @@ def initialize_evacuation_paths(floor_level: int):
 
         logger.info(f"Init neutra su piano {floor_level}: azzerati {count} target (types={exit_types})")
 
-
-        # target_nodes = set(get_safe_nodes_for_event(G, event_type))
-        # if not target_nodes:
-        #     logger.info(f"Nessun target per init su piano {floor_level} (evento {event_type})")
-        #     return
-
-        # for n, d in G.nodes(data=True):
-        #     is_target = n in target_nodes
-        #     if is_target:
-        #         update_node_evacuation_path(n, [])
-        # logger.info(f"Init evacuation_path su piano {floor_level}: azzerati {len(target_nodes)} target")
-
     except Exception as e:
         logger.error(f"Errore initialize_evacuation_paths: {e}")
 
@@ -118,6 +163,7 @@ def get_saved_evacuation_path(node_id: int) -> List[int]:
 
 def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: str, rabbitmq_handler=None):
     try:
+        logger.info(f"handle_evacuations: floor={floor_level}, event={event_type}, nodes={alert_nodes}")
         if not alert_nodes:
             return
 
@@ -125,17 +171,18 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: str
         if G is None:
             logger.warning(f"Nessun grafo per il piano {floor_level}")
             return
-
-        safe_nodes = get_safe_nodes_for_event(G, event_type)
+        
+        safe_nodes = collect_safe_nodes_multi_floor(floor_level, event_type)
         if not safe_nodes:
-            logger.warning(f"Nessun nodo target per event={event_type} sul piano {floor_level}")
+            logger.warning(f"Nessun nodo target raggiungibile per event={event_type} da piano {floor_level}")
             return
-
-        paths_by_node: dict[int, list[int]] = {}
+        
+        paths_by_node: Dict[int, List[int]] = {}
         safe_nodes_set = set(safe_nodes)
+        
         for source in alert_nodes:
             if source not in G:
-                logger.warning(f"Nodo di alert {source} non presente nel grafo")
+                logger.warning(f"Nodo di alert {source} non presente nel grafo del piano {floor_level}")
                 continue
 
             # Se il nodo è già "target", nessun path necessario
@@ -143,18 +190,16 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: str
                 update_node_evacuation_path(source, [])
                 continue
 
-            # Se ho un path già salvato e l’ultimo arco porta al nodo corrente, salto
+            # Se ho un path già salvato verso un target, salto
             saved = get_saved_evacuation_path(source)
             if saved:
                 last_arc = saved[-1]
                 final_node = get_arc_final_node(last_arc)
-                # if final_node is not None and final_node == source:
-                #     logger.info(f"Nodo {source} sembra essere già a destinazione, skip.")
-                #     continue
                 if final_node is not None and final_node in safe_nodes_set:
                     logger.info(f"Nodo {source} ha già un path verso un target (last_arc termina in target). Skip.")
                     continue
 
+            # Calcolo del path: il path_calculator unisce i piani connessi dalle scale
             path = find_shortest_path_to_exit(G, source, safe_nodes)
             if path is None:
                 logger.warning(f"Nessun path di evacuazione per nodo {source}")
@@ -169,7 +214,7 @@ def handle_evacuations(floor_level: int, alert_nodes: List[int], event_type: str
                 logger.info(f"Inviato 'paths_ready' su {ACK_EVACUATION_QUEUE}")
             except Exception as e:
                 logger.error(f"Errore pubblicando paths_ready: {e}")
-
+                    
     except Exception as e:
         logger.error(f"Errore in handle_evacuations: {e}")
         raise

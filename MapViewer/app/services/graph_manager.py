@@ -160,6 +160,9 @@ class GraphManager:
             arc_id = cur.fetchone()[0]
             conn.commit()
             print(f"Arco {arc_id} inserito tra nodi {node1} e {node2}")
+            if self.graphs.get(floor) and self.graphs[floor].has_edge(node1, node2):
+                self.graphs[floor].edges[node1, node2]["arc_id"] = arc_id
+                self.graphs[floor].edges[node1, node2]["traversal_time"] = traversal_seconds
         finally:
             cur.close()
             conn.close()
@@ -231,7 +234,7 @@ class GraphManager:
             
             # Carica archi correlati
             cur.execute("""
-                SELECT arc_id, initial_node, final_node, active 
+                SELECT arc_id, initial_node, final_node, active, traversal_time 
                 FROM arcs 
                 WHERE initial_node IN (
                     SELECT node_id FROM nodes WHERE %s = ANY(floor_level)
@@ -240,12 +243,13 @@ class GraphManager:
             
             arcs = []
             for row in cur.fetchall():
-                arc_id, initial_node, final_node, active = row
+                arc_id, initial_node, final_node, active, traversal_time = row
                 arcs.append({
                     "arc_id": arc_id,
                     "initial_node": initial_node,
                     "final_node": final_node,
-                    "active": active
+                    "active": active,
+                    "traversal_time": traversal_time
                 })
             
             # Costruisci il grafo
@@ -254,9 +258,11 @@ class GraphManager:
                 G.add_node(node['id'], **node)
             
             for arc in arcs:
+                tt = time_str_to_seconds(arc.get("traversal_time"))
                 G.add_edge(arc['initial_node'], arc['final_node'], 
-                        arc_id=arc['arc_id'], active=arc['active'])
-            
+                        arc_id=arc['arc_id'], active=arc['active'],
+                        traversal_time=tt)
+
             self.graphs[floor_level] = G    
         finally:
             cur.close()

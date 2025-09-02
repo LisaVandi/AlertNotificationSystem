@@ -36,18 +36,26 @@ class EvacuationConsumer:
             if not dangerous_nodes:
                 logger.warning("Nessun nodo pericoloso nel messaggio.")
                 return
-
-            # L’evento lo prendo dallo stato impostato dall’alert
+            
+            # L’evento si prende SOLO dallo stato impostato dall’alert
             event_type = EventState.get()
+            logger.info(f"Using event_type='{event_type}' for evacuation computation")
+            
             if not event_type:
-                msg_event = message.get("event")
-                if isinstance(msg_event, str) and msg_event.strip():
-                    set_current_event(msg_event.strip())
-                    event_type = msg_event.strip()
-                    logger.info(f"Event impostato da payload → {event_type}")
-                    
-            if not event_type:
-                logger.warning(f"Nessun evento nel sistema/payload.")
+                logger.warning(
+                    "Nessun evento globale impostato. Ignoro il batch finché non arriva un Alert valido."
+                )
+                return
+
+            # Se il payload contiene un event discordante, logghiamo e ignoriamo
+            payload_event = (message.get("event") or "").strip()
+            if payload_event and payload_event != event_type:
+                logger.warning(
+                    f"Payload event '{payload_event}' diverso dall'evento corrente '{event_type}'. "
+                    "Ignoro il payload e uso l'evento globale."
+                )            
+            
+            logger.info(f"Using event_type='{event_type}' for evacuation computation")            
 
             # Raggruppo per piano usando i floor_level dal DB
             floor_groups: Dict[int, List[int]] = {}

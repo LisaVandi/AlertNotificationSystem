@@ -143,7 +143,7 @@ def preload_graphs():
                 })
 
             cur.execute("""
-                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time
+                SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time
                 FROM arcs
                 WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
                 AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
@@ -163,7 +163,7 @@ def preload_graphs():
                     "x2": x2,
                     "y2": y2,
                     "active": active,
-                    "traversal_time": traversal_time
+                    "traversal_time": float(traversal_time)
                 })
 
             graph_manager.load_graph(floor, nodes, arcs)
@@ -241,12 +241,12 @@ def get_graph(floor: int):
         nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5], "safe": bool(r[6])} for r in cur.fetchall()]
 
         cur.execute("""
-            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time
+            SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time
             FROM arcs
             WHERE initial_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
             AND final_node IN (SELECT node_id FROM nodes WHERE  %s = ANY(floor_level))
         """, (floor, floor))
-        arcs = [{"arc_id": r[0], "initial_node": r[1], "final_node": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7], "traversal_time": r[8]} for r in cur.fetchall()]
+        arcs = [{"arc_id": r[0], "initial_node": r[1], "final_node": r[2], "x1": r[3], "y1": r[4], "x2": r[5], "y2": r[6], "active": r[7], "traversal_time": float(r[8])} for r in cur.fetchall()]
           
         with graph_manager.lock:
             if floor not in graph_manager.graphs:

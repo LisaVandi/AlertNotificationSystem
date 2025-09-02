@@ -5,7 +5,7 @@ from MapManager.app.config.logging import setup_logging
 from MapManager.app.config.settings import MAP_ALERTS_QUEUE, ALERTS_CONFIG_PATH
 from MapManager.app.services.db_writer import set_all_safe, set_nodes_safe, set_safe_by_floor
 from MapManager.app.services.db_reader import (
-    get_node_ids_by_type, get_node_ids_by_floor, get_all_node_ids, get_node_ids_in_zone
+    get_node_ids_by_type, get_node_ids_in_zone
 )
 from MapManager.app.core.event_state import set_current_event, clear_current_event
 
