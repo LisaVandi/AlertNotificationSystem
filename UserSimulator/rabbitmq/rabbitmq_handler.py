@@ -116,6 +116,9 @@ class RabbitMQHandler:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
+            if isinstance(data, dict):
+                data = [data]
+
             # ▸ 1. Il payload deve essere una lista di dict
             if not isinstance(data, list):
                 logger.warning("Expected a list of evacuation paths, got something else.")
