@@ -138,12 +138,7 @@ class RabbitMQHandler:
                 else:
                     logger.warning(f"User ID {user_id} not found in simulator")
 
-            # ▸ 3. Chi NON è nella lista ma era ancora “in attesa”/“allerta” ⇒ salvo
-            for uid, usr in self.simulator.users.items():
-                if uid not in received_user_ids and usr.state in ("allerta", "in_attesa_percorso"):
-                    usr.mark_as_salvo()
-                    logger.info(f"User {uid} marked as SALVO (no longer present in paths)")
-
+           
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
