@@ -62,7 +62,7 @@ def get_safe_nodes_for_event(G, event_type: str) -> List[int]:
     logger.warning(f"Tipo regola non gestito: '{etype}' per event='{event_type}'")
     return []
 
-def initialize_evacuation_paths(floor_level: int, event_type: str):
+def initialize_evacuation_paths(floor_level: int):
     """
     Inizializza gli evacuation_path per i nodi del piano:
     - se un nodo è già un target (es. è 'outdoor' per Earthquake, o 'stairs@0' per Flood), path = []

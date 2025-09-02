@@ -1,0 +1,98 @@
+[
+  {
+    "user_id": 0,
+    "x": 651,
+    "y": 686,
+    "z": 131,
+    "node_id": 16,
+    "danger": true
+  },
+  {
+    "user_id": 1,
+    "x": 871,
+    "y": 863,
+    "z": 126,
+    "node_id": 24,
+    "danger": true
+  },
+  {
+    "user_id": 2,
+    "x": 430,
+    "y": 740,
+    "z": 402,
+    "node_id": 162,
+    "danger": false
+  },
+  {
+    "user_id": 3,
+    "x": 541,
+    "y": 677,
+    "z": 228,
+    "node_id": 15,
+    "danger": true
+  },
+  {
+    "user_id": 1,
+    "x": 784,
+    "y": 804,
+    "z": 300,
+    "node_id": 22,
+    "danger": true
+  },
+  {
+    "user_id": 0,
+    "x": 440,
+    "y": 472,
+    "z": 0,
+    "node_id": 30,
+    "danger": true
+  },
+  {
+    "user_id": 1,
+    "x": 709,
+    "y": 692,
+    "z": 150,
+    "node_id": 26,
+    "danger": false
+  },
+  {
+    "user_id": 3,
+    "x": 440,
+    "y": 472,
+    "z": 0,
+    "node_id": 30,
+    "danger": true
+  },
+  {
+    "user_id": 0,
+    "x": 379,
+    "y": 271,
+    "z": 300,
+    "node_id": 55,
+    "danger": true
+  },
+  {
+    "user_id": 3,
+    "x": 379,
+    "y": 271,
+    "z": 300,
+    "node_id": 55,
+    "danger": true
+  },
+  {
+    "user_id": 0,
+    "x": 299,
+    "y": 221,
+    "z": 150,
+    "node_id": 37,
+    "danger": false
+  },
+  {
+    "user_id": 3,
+    "x": 299,
+    "y": 221,
+    "z": 150,
+    "node_id": 37,
+    "danger": false
+  }
+]

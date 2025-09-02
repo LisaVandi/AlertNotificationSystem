@@ -4,7 +4,7 @@ import psycopg2
 from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapManager.app.core.manager import handle_evacuations
 from MapManager.app.config.logging import setup_logging
-from MapManager.app.config.settings import DEFAULT_EVENT_TYPE, MAP_MANAGER_QUEUE
+from MapManager.app.config.settings import MAP_MANAGER_QUEUE
 from MapManager.app.core.event_state import EventState, set_current_event
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
