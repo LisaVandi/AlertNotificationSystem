@@ -210,14 +210,14 @@ class GraphManager:
         try:
             cur.execute("""
                 SELECT node_id, x1, x2, y1, y2, node_type, 
-                    current_occupancy, capacity, floor_level 
+                    current_occupancy, capacity, floor_level, safe 
                 FROM nodes 
                 WHERE %s = ANY(floor_level)
             """, (floor_level,))
             
             nodes = []
             for row in cur.fetchall():
-                node_id, x1, x2, y1, y2, node_type, occ, cap, floors = row
+                node_id, x1, x2, y1, y2, node_type, occ, cap, floors, safe = row
                 nodes.append({
                     "id": node_id,
                     "x": (x1 + x2) // 2,
@@ -225,7 +225,8 @@ class GraphManager:
                     "node_type": node_type,
                     "current_occupancy": occ,
                     "capacity": cap,
-                    "floor_level": floors
+                    "floor_level": floors,
+                    "safe": safe
                 })
             
             # Carica archi correlati

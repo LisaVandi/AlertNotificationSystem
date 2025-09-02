@@ -14,11 +14,11 @@ ALERTMANAGER_DELAY = 5  # secondi
 
 SERVICES = {
     "MapViewer":        ["uvicorn", "MapViewer.main:app", "--reload"],
-    "MapManager":       ["python", "-m", "MapManager.main"],
     "UserSimulator":    ["uvicorn", "UserSimulator.main:app", "--reload", "--port", "8001"],
     "PositionManager":  ["python", "PositionManager/main.py"],
     "NotificationCenter":["python", "-m", "NotificationCenter.main"],
-    "AlertManager":     ["python", "AlertManager/main.py"]
+    "AlertManager":     ["python", "AlertManager/main.py"],
+    "MapManager":       ["python", "-m", "MapManager.main"]
 }
 
 monitor_targets = [
@@ -50,7 +50,7 @@ def wait_for_configuration_flag():
         return
 
     # Avvia prima tutti tranne AlertManager
-    for svc in ("UserSimulator", "MapManager", "PositionManager", "NotificationCenter"):
+    for svc in ("UserSimulator", "PositionManager", "NotificationCenter"):
         run_process(svc, SERVICES[svc])
 
     # Ritardo prima di avviare AlertManager
@@ -58,6 +58,7 @@ def wait_for_configuration_flag():
     time.sleep(ALERTMANAGER_DELAY)
 
     run_process("AlertManager", SERVICES["AlertManager"])
+    run_process("MapManager", SERVICES["MapManager"])
 
 def monitor_logs():
     last_pos = {t["name"]: 0 for t in monitor_targets}

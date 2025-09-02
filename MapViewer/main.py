@@ -19,7 +19,6 @@ from datetime import datetime
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES, Z_RANGES, SCALE_CONFIG
-# from MapViewer.db.db_connection import create_connection
 from MapViewer.db.db_setup import create_tables
 from MapViewer.app.services.height_mapper import HeightMapper
 
@@ -49,7 +48,7 @@ async def clear_positions_on_startup():
             cur.execute("DELETE FROM current_position;")
             cur.execute("DELETE FROM user_historical_position;")
             cur.execute("UPDATE nodes SET current_occupancy = 0;")
-            
+            #cur.execute("UPDATE nodes SET safe = TRUE;")
             conn.commit()
         except Exception as e:
             print("Error while cleaning:", e)
@@ -122,14 +121,14 @@ def preload_graphs():
 
         for floor in floors:
             cur.execute("""
-                SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level
+                SELECT node_id, x1, x2, y1, y2, node_type, current_occupancy, capacity, floor_level,  COALESCE(safe, TRUE) AS safe
                 FROM nodes WHERE %s = ANY(floor_level)
             """, (floor,))
             nodes_db = cur.fetchall()
             
             nodes = []
             for r in nodes_db:
-                node_id, x1, x2, y1, y2, node_type, occ, cap, floor_level = r
+                node_id, x1, x2, y1, y2, node_type, occ, cap, floor_level, safe = r
                 x_center = (x1 + x2) / 2
                 y_center = (y1 + y2) / 2
                 nodes.append({
@@ -139,7 +138,8 @@ def preload_graphs():
                     "node_type": node_type,
                     "current_occupancy": occ,
                     "capacity": cap,
-                    "floor_level": floor_level
+                    "floor_level": floor_level,
+                    "safe": bool(safe)
                 })
 
             cur.execute("""
@@ -235,10 +235,10 @@ def get_graph(floor: int):
         conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
         cur.execute("""
-            SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity
+            SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity, COALESCE(safe, TRUE) AS safe
             FROM nodes WHERE %s = ANY(floor_level)
         """, (floor,))
-        nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5]} for r in cur.fetchall()]
+        nodes = [{"id": r[0], "x": r[1], "y": r[2], "node_type": r[3], "current_occupancy": r[4], "capacity": r[5], "safe": bool(r[6])} for r in cur.fetchall()]
 
         cur.execute("""
             SELECT arc_id, initial_node, final_node, x1, y1, x2, y2, active, traversal_time::text AS traversal_time

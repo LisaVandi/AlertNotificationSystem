@@ -1,0 +1,34 @@
+[
+  {
+    "user_id": 0,
+    "x": 383,
+    "y": 195,
+    "z": 575,
+    "node_id": 158,
+    "danger": true
+  },
+  {
+    "user_id": 1,
+    "x": 440,
+    "y": 731,
+    "z": 111,
+    "node_id": 21,
+    "danger": true
+  },
+  {
+    "user_id": 2,
+    "x": 342,
+    "y": 162,
+    "z": 858,
+    "node_id": 197,
+    "danger": true
+  },
+  {
+    "user_id": 3,
+    "x": 347,
+    "y": 159,
+    "z": 889,
+    "node_id": 197,
+    "danger": true
+  }
+]

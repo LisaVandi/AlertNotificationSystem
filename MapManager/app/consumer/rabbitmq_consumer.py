@@ -4,8 +4,8 @@ import psycopg2
 from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapManager.app.core.manager import handle_evacuations
 from MapManager.app.config.logging import setup_logging
-from MapManager.app.config.settings import MAP_MANAGER_QUEUE
-from MapManager.app.core.event_state import EventState
+from MapManager.app.config.settings import DEFAULT_EVENT_TYPE, MAP_MANAGER_QUEUE
+from MapManager.app.core.event_state import EventState, set_current_event
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 
@@ -40,8 +40,14 @@ class EvacuationConsumer:
             # L’evento lo prendo dallo stato impostato dall’alert
             event_type = EventState.get()
             if not event_type:
-                logger.info("Nessun evento corrente impostato. Skipping evacuation calc.")
-                return
+                msg_event = message.get("event")
+                if isinstance(msg_event, str) and msg_event.strip():
+                    set_current_event(msg_event.strip())
+                    event_type = msg_event.strip()
+                    logger.info(f"Event impostato da payload → {event_type}")
+                    
+            if not event_type:
+                logger.warning(f"Nessun evento nel sistema/payload.")
 
             # Raggruppo per piano usando i floor_level dal DB
             floor_groups: Dict[int, List[int]] = {}

@@ -50,6 +50,8 @@ class AlertConsumer:
                 return
 
             set_current_event(event_type)
+            logger.info(f"Current event set to: {event_type}")
+            
             emergencies = EMERGENCY_CFG.get("emergencies", {})
             rule = emergencies.get(event_type)
 

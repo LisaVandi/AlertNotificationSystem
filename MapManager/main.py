@@ -137,7 +137,9 @@ def main():
 
     # Inizializzazione delle evacuation path di default (evento “Earthquake”)
     for floor in graph_manager.graphs.keys():
-        initialize_evacuation_paths(floor, event_type="Earthquake")
+        # initialize_evacuation_paths(floor, event_type="Earthquake")
+        initialize_evacuation_paths(floor_level=floor)
+
     logger.info("Initialization completed. MapManager ready and listening.")
 
     # Installa il signal handler per Ctrl+C / SIGTERM

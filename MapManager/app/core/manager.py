@@ -9,7 +9,7 @@ from MapManager.app.services.db_reader import get_arc_final_node
 from MapManager.app.services.path_calculator import find_shortest_path_to_exit
 from MapManager.app.services.db_writer import update_node_evacuation_path
 from MapManager.app.services.publisher import publish_paths_ready
-from MapManager.app.config.settings import ACK_EVACUATION_QUEUE, ALERTS_CONFIG_PATH
+from MapManager.app.config.settings import ACK_EVACUATION_QUEUE, ALERTS_CONFIG_PATH, PATHFINDING_CONFIG
 
 logger = setup_logging("evacuation_manager", "MapManager/logs/evacuationManager.log")
 
@@ -73,17 +73,31 @@ def initialize_evacuation_paths(floor_level: int, event_type: str):
         if G is None:
             logger.warning(f"Nessun grafo per il piano {floor_level}")
             return
-
-        target_nodes = set(get_safe_nodes_for_event(G, event_type))
-        if not target_nodes:
-            logger.info(f"Nessun target per init su piano {floor_level} (evento {event_type})")
+        
+        exit_types = PATHFINDING_CONFIG.get("default_exit_node_types", [])
+        if not exit_types:
+            logger.info("Nessun default_exit_node_types configurato: init neutra saltata.")
             return
 
+        count = 0
         for n, d in G.nodes(data=True):
-            is_target = n in target_nodes
-            if is_target:
-                update_node_evacuation_path(n, [])
-        logger.info(f"Init evacuation_path su piano {floor_level}: azzerati {len(target_nodes)} target")
+            if d.get("node_type") in exit_types:
+                update_node_evacuation_path(n, [])  # i target non hanno bisogno di path
+                count += 1
+
+        logger.info(f"Init neutra su piano {floor_level}: azzerati {count} target (types={exit_types})")
+
+
+        # target_nodes = set(get_safe_nodes_for_event(G, event_type))
+        # if not target_nodes:
+        #     logger.info(f"Nessun target per init su piano {floor_level} (evento {event_type})")
+        #     return
+
+        # for n, d in G.nodes(data=True):
+        #     is_target = n in target_nodes
+        #     if is_target:
+        #         update_node_evacuation_path(n, [])
+        # logger.info(f"Init evacuation_path su piano {floor_level}: azzerati {len(target_nodes)} target")
 
     except Exception as e:
         logger.error(f"Errore initialize_evacuation_paths: {e}")
