@@ -4,20 +4,17 @@ import psycopg2
 from MapViewer.app.config.settings import DATABASE_CONFIG
 from MapManager.app.core.manager import handle_evacuations
 from MapManager.app.config.logging import setup_logging
-from MapManager.app.config.settings import MAP_MANAGER_QUEUE
-from MapManager.app.core.event_state import EventState, set_current_event
+from MapManager.app.config.settings import EVENT_TTL_SECONDS, MAP_MANAGER_QUEUE
+from MapManager.app.core.event_state import EventState
 
 from NotificationCenter.app.services.rabbitmq_handler import RabbitMQHandler
 
 logger = setup_logging("evacuation_consumer", "MapManager/logs/evacuationConsumer.log")
 
 class EvacuationConsumer:
-    """
-    Consuma da MAP_MANAGER_QUEUE i nodi pericolosi aggregati (by PositionManager)
-    e lancia il calcolo dei percorsi. NON modifica i flag 'safe' (che sono gestiti dall'alert).
-    """
-    def __init__(self, rabbitmq_handler: RabbitMQHandler):
+    def __init__(self, rabbitmq_handler: RabbitMQHandler, event_state: EventState):
         self.rabbit = rabbitmq_handler
+        self.event_state = event_state
         logger.info("EvacuationConsumer inizializzato.")
 
     def start_consuming(self):
@@ -30,34 +27,31 @@ class EvacuationConsumer:
     def process_message(self, message: Dict[str, Any]):
         try:
             logger.info(f"Ricevuto payload: {message}")
-
-            # Estraggo i nodi pericolosi
+            
             dangerous_nodes = message.get("dangerous_nodes") or []
             if not dangerous_nodes:
                 logger.warning("Nessun nodo pericoloso nel messaggio.")
                 return
-            
-            # L’evento si prende SOLO dallo stato impostato dall’alert
-            event_type = EventState.get()
-            logger.info(f"Using event_type='{event_type}' for evacuation computation")
-            
-            if not event_type:
-                logger.warning(
-                    "Nessun evento globale impostato. Ignoro il batch finché non arriva un Alert valido."
-                )
-                return
 
-            # Se il payload contiene un event discordante, logghiamo e ignoriamo
-            payload_event = (message.get("event") or "").strip()
-            if payload_event and payload_event != event_type:
-                logger.warning(
-                    f"Payload event '{payload_event}' diverso dall'evento corrente '{event_type}'. "
-                    "Ignoro il payload e uso l'evento globale."
-                )            
+            payload_event = (message.get("event") or "").strip() or None
+            global_event = self.event_state.get()
+            global_age = EventState.age_seconds()
             
-            logger.info(f"Using event_type='{event_type}' for evacuation computation")            
-
-            # Raggruppo per piano usando i floor_level dal DB
+            if payload_event:
+                event_type = payload_event
+                if payload_event != global_event:
+                    EventState.set(payload_event)
+                    logger.info(f"Aggiornato global event -> '{payload_event}' (source=payload)")
+                # logger.info(f"Using event_type='{event_type}' for evacuation computation (source=payload)")
+            else:
+                # 2) Nessun evento nel payload -> fallback al globale solo se fresco
+                if global_event and global_age <= EVENT_TTL_SECONDS:
+                    event_type = global_event
+                    logger.info(f"Using event_type='{event_type}' for evacuation computation (source=global, age={global_age:.1f}s)")
+                else:
+                    logger.warning("Né payload_event né global_event valido/fresco. Ignoro il batch.")
+                    return
+    
             floor_groups: Dict[int, List[int]] = {}
             for entry in dangerous_nodes:
                 node_id = entry.get("node_id")
@@ -74,7 +68,7 @@ class EvacuationConsumer:
                 handle_evacuations(floor, group, event_type, rabbitmq_handler=self.rabbit)
 
         except Exception as e:
-            logger.error(f"Errore processando MAP_MANAGER_QUEUE: {e}")
+            logger.error(f"Errore processando MAP_MANAGER_QUEUE: {e}", exc_info=True)
             raise
 
     def _get_node_floors(self, node_id: int) -> Optional[List[int]]:

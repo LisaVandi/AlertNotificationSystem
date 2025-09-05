@@ -169,7 +169,8 @@ class GraphManager:
 
     def load_graph(self, floor_level, nodes, arcs):
         with self.lock:
-            G = nx.Graph()
+            G = nx.DiGraph()
+            # G = nx.Graph()
             for node in nodes:
                 node_id = node.get("id") or node.get("node_id")
                 if node_id is None:
@@ -253,7 +254,8 @@ class GraphManager:
                 })
             
             # Costruisci il grafo
-            G = nx.Graph()
+            G = nx.DiGraph()
+            # G = nx.Graph()
             for node in nodes:
                 G.add_node(node['id'], **node)
             

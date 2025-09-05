@@ -246,8 +246,6 @@ async function loadGraph(mapObj) {
         const latlng = L.latLng(mapObj.imageHeight - node.y, node.x);
         markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
       }
-      // const latlng = L.latLng(imageHeight - node.y, node.x);
-      // markersLayer.addLayer(createNodeMarker(node, latlng, mapObj));
     });
 
     data.arcs.forEach(arc => {
@@ -458,3 +456,42 @@ async function init() {
   }
 
 init().catch(err => console.error("Error in init():", err));
+
+// const socket = new WebSocket("ws://localhost:8000/ws/positions");
+
+// socket.onopen = () => {
+//     console.log("WebSocket connection established");
+// };
+
+// socket.onmessage = function(event) {
+//     const data = JSON.parse(event.data);
+//     const positions = data.positions;
+    
+//     // Funzione per aggiornare la mappa con le nuove posizioni degli utenti
+//     updateMapWithUserPositions(positions);
+// };
+
+// socket.onclose = function(event) {
+//     console.log("WebSocket connection closed");
+// };
+
+// // Funzione per aggiornare la mappa con le posizioni degli utenti
+// function updateMapWithUserPositions(positions) {
+//     // Per ogni posizione, calcoliamo le coordinate in lat/lng e creiamo un marker
+//     positions.forEach(user => {
+//         const x_px = user.x;
+//         const y_px = user.y;
+//         const latlng = imgPxToLatLng(x_px, y_px);
+        
+//         // Crea un marker per l'utente
+//         const marker = createUserMarker(user, latlng);
+        
+//         // Aggiungi il marker alla mappa
+//         maps.forEach(mapObj => {
+//             if (mapObj.floor === activeFloor) {
+//                 mapObj.usersLayer.clearLayers();  // Rimuovi i vecchi marker
+//                 mapObj.usersLayer.addLayer(marker);  // Aggiungi i nuovi marker
+//             }
+//         });
+//     });
+// }

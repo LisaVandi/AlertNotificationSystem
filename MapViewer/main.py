@@ -7,7 +7,7 @@ import re
 import asyncio
 import httpx
 
-from fastapi import FastAPI, Body, Query, HTTPException
+from fastapi import FastAPI, Body, Query, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +23,7 @@ from MapViewer.db.db_setup import create_tables
 from MapViewer.app.services.height_mapper import HeightMapper
 
 USER_SIMULATOR_URL = "http://localhost:8001" 
+simulator_instance_ref = []
 height_mapper = HeightMapper(Z_RANGES, SCALE_CONFIG)
 
 async def clear_positions_on_startup():
@@ -334,6 +335,20 @@ async def proxy_positions():
 
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Unable to contact UserSimulator: {e}")
+
+@app.websocket("/ws/positions")
+async def websocket_positions(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Recupera le posizioni dal simulatore
+            simulator = simulator_instance_ref[0] if simulator_instance_ref else None
+            if simulator:
+                positions = list(simulator.users_positions.values())
+                await websocket.send_json({"positions": positions})
+            await asyncio.sleep(1)  # Invia le posizioni ogni secondo
+    except WebSocketDisconnect:
+        print("Client disconnected")
 
 @app.get("/")
 async def get_index():
