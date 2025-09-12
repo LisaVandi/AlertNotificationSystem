@@ -8,6 +8,22 @@ from PositionManager.utils.logger import logger
 
 
 class PositionManagerConsumer:
+    """
+    Consumer di PositionManager.
+
+    Logica STOP basata sullo User Simulator:
+      - Legge il numero di utenti simulati dal file YAML:
+            UserSimulator/config/config.yaml
+        con chiave:
+            n_users: <intero>
+
+      - Invia STOP solo se la tabella current_position contiene ESATTAMENTE n_users righe,
+        e tutte con danger = FALSE.
+
+    Opzioni:
+      - È possibile sovrascrivere il path del file con env var USER_SIMULATOR_CONFIG.
+      - Se il file/chiave non sono leggibili, per sicurezza NON inviamo STOP.
+    """
     def __init__(self, config_file=None):
         self.db_manager = DBManager()
         self.dispatch_threshold = 100
@@ -16,6 +32,9 @@ class PositionManagerConsumer:
         self.last_dispatch_time = time.time()
         self.last_event = None
         self._stop_sent = False
+
+        # Cache del numero di utenti simulati (caricato da YAML)
+        self._sim_users_count = None
 
         # ---- Connessione RabbitMQ parametrizzata ----
         creds = pika.PlainCredentials(
@@ -30,7 +49,7 @@ class PositionManagerConsumer:
             blocked_connection_timeout=300
         )
 
-        # Connessione principale per position_queue / map_manager_queue / alerted_users_queue
+        # Connessione principale per le code principali
         self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue='position_queue', durable=True)
@@ -59,11 +78,122 @@ class PositionManagerConsumer:
             time.sleep(1)
             now = time.time()
             if (now - self.last_dispatch_time) >= self.dispatch_interval:
+                # Se c'è pericolo, invia aggiornamento mappa periodico
                 if not self.db_manager.is_everyone_safe():
                     logger.info("Periodic flush: danger detected, sending to MapManager.")
                     self.send_aggregated_data(only_to_map_manager=True)
                     self.processed_count = 0
                 self.last_dispatch_time = now
+
+    def _candidate_config_paths(self):
+        """
+        Restituisce una lista di path candidati per il file YAML dello User Simulator.
+        Ordine:
+          1) USER_SIMULATOR_CONFIG (se settata)
+          2) 'UserSimulator/config/config.yaml' relativa alla cwd
+          3) path relativo al file corrente (__file__)
+          4) path relativo alla cartella padre di __file__
+        """
+        paths = []
+        env_path = os.getenv("USER_SIMULATOR_CONFIG")
+        if env_path:
+            paths.append(env_path)
+
+        # path relativo alla CWD
+        paths.append(os.path.join("UserSimulator", "config", "config.yaml"))
+
+        # path relativo al file corrente
+        here = os.path.dirname(os.path.abspath(__file__))
+        paths.append(os.path.join(here, "UserSimulator", "config", "config.yaml"))
+        paths.append(os.path.join(os.path.dirname(here), "UserSimulator", "config", "config.yaml"))
+
+        # dedup mantenendo l'ordine
+        seen = set()
+        uniq = []
+        for p in paths:
+            if p not in seen:
+                uniq.append(p)
+                seen.add(p)
+        return uniq
+
+    def _load_simulated_users_from_yaml(self):
+        """
+        Legge n_users dal file YAML.
+        Ritorna un intero > 0 oppure None se non disponibile.
+        """
+        for path in self._candidate_config_paths():
+            try:
+                if os.path.exists(path):
+                    try:
+                        import yaml  # PyYAML se disponibile
+                        with open(path, "r", encoding="utf-8") as f:
+                            data = yaml.safe_load(f) or {}
+                        if "n_users" in data:
+                            n = int(data["n_users"])
+                            if n > 0:
+                                logger.info(f"Loaded n_users={n} from YAML: {path}")
+                                return n
+                        logger.warning(f"'n_users' not found in YAML: {path}")
+                    except Exception as e_yaml:
+                        # Fallback: parser minimale via regex
+                        try:
+                            import re
+                            with open(path, "r", encoding="utf-8") as f:
+                                text = f.read()
+                            m = re.search(r"^\s*n_users\s*:\s*(\d+)\s*$", text, flags=re.MULTILINE)
+                            if m:
+                                n = int(m.group(1))
+                                if n > 0:
+                                    logger.info(f"Loaded n_users={n} from YAML (regex fallback): {path}")
+                                    return n
+                            logger.warning(f"Regex fallback could not find 'n_users' in: {path}")
+                        except Exception as e_rx:
+                            logger.error(f"Failed reading YAML (and fallback) at {path}: {e_yaml} / {e_rx}")
+            except Exception as e:
+                logger.error(f"Error while probing config path {path}: {e}")
+        return None
+
+    def _get_simulated_users_count(self):
+        """
+        Ricava e cache il numero di utenti simulati dal YAML (n_users).
+        Se non disponibile/valido, ritorna None (fail-safe: non inviamo STOP).
+        """
+        if self._sim_users_count is not None:
+            return self._sim_users_count
+
+        n = self._load_simulated_users_from_yaml()
+        if n and n > 0:
+            self._sim_users_count = n
+            return n
+
+        logger.warning(
+            "Simulated users count not found in UserSimulator/config/config.yaml (key 'n_users'). "
+            "STOP will not be sent."
+        )
+        return None
+
+    def _is_stop_condition_satisfied_by_sim_count(self):
+        """
+        STOP se e solo se:
+          - current_position ha ESATTAMENTE n_users righe
+          - tutte con danger = FALSE
+        """
+        n = self._get_simulated_users_count()
+        if not n:
+            return False
+
+        try:
+            with self.db_manager.conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM current_position;")
+                total = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM current_position WHERE danger = FALSE;")
+                safe = cursor.fetchone()[0]
+            ok = (total == n) and (safe == n)
+            logger.debug(f"STOP check -> simulated(n_users)={n}, current_total={total}, safe={safe}, ok={ok}")
+            return ok
+        except Exception as e:
+            logger.error(f"Failed STOP condition check by simulated users: {e}")
+            return False
 
     def process_message(self, ch, method, properties, body):
         try:
@@ -83,7 +213,7 @@ class PositionManagerConsumer:
             # L'utente è in pericolo solo se il nodo non è sicuro
             danger = not node_safe
 
-            # Se torna un pericolo dopo uno STOP inviato, sblocca la possibilità di rimandarlo in futuro
+            # Se torna un pericolo dopo uno STOP inviato, sblocca la possibilità di rimandarlo
             if danger and self._stop_sent:
                 logger.info("New user in danger detected — resetting STOP flag.")
                 self._stop_sent = False
@@ -92,17 +222,18 @@ class PositionManagerConsumer:
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
             self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
 
-            # --- NUOVA REGOLA: invio STOP solo se condizione storica soddisfatta per TUTTI ---
-            safe_to_stop = self.db_manager.is_stop_condition_satisfied()
-            logger.info(
-                f"is_stop_condition_satisfied = {safe_to_stop}, "
-                f"_stop_sent = {getattr(self, '_stop_sent', False)}"
-            )
+            # --- NUOVA REGOLA: invio STOP solo se condizione n_users ----
+            can_stop = self._is_stop_condition_satisfied_by_sim_count()
+            logger.info(f"stop_condition_by_simulated_users = {can_stop}, _stop_sent = {self._stop_sent}")
 
-            if safe_to_stop and not getattr(self, "_stop_sent", False):
+            if can_stop and not self._stop_sent:
                 self.send_stop_message()
-                logger.info("Send Stop message (all users safe now AND each has at least one historical safe).")
+                logger.info("Send Stop message (current_position == n_users AND all safe).")
                 self._stop_sent = True
+            elif self._stop_sent and not can_stop:
+                # Se la condizione non è più soddisfatta (es. utenti mancanti o pericolo), resettiamo
+                logger.info("Stop condition no longer satisfied — resetting STOP flag.")
+                self._stop_sent = False
 
             # Dispatch verso MapManager a batch
             self.processed_count += 1
@@ -143,8 +274,8 @@ class PositionManagerConsumer:
             )
             logger.info("Sent evacuation data to alerted_users_queue.")
         else:
-            # --- NUOVA REGOLA: STOP solo se condizione storica soddisfatta ---
-            if self.db_manager.is_stop_condition_satisfied():
+            # --- STOP solo se condizione con n_users è soddisfatta ---
+            if self._is_stop_condition_satisfied_by_sim_count():
                 self.send_stop_message()
             else:
                 logger.info("Evacuation data empty, but stop condition NOT satisfied — not sending STOP.")
@@ -204,12 +335,10 @@ class PositionManagerConsumer:
                 if not self.db_manager.is_everyone_safe():
                     evacuation_data = self.db_manager.get_aggregated_evacuation_data()
                     self.send_evacuation_data(evacuation_data)
-                elif self.db_manager.have_all_current_users_been_safe_once():
+                elif self._is_stop_condition_satisfied_by_sim_count():
                     self.send_stop_message()
                 else:
-                    logger.info(
-                        "All users currently safe, but at least one user has NO historical safe record — NOT sending STOP."
-                    )
+                    logger.info("All users currently safe, but STOP condition by n_users is NOT satisfied — not sending STOP.")
             else:
                 logger.warning(f"Ignored unknown ack message type: {msg}")
         except Exception as e:
@@ -237,8 +366,8 @@ class PositionManagerConsumer:
                 evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
             if not evacuation_data:
-                # --- NUOVA REGOLA: STOP solo se condizione storica soddisfatta ---
-                if self.db_manager.is_stop_condition_satisfied():
+                # --- STOP solo se condizione con n_users è soddisfatta ---
+                if self._is_stop_condition_satisfied_by_sim_count():
                     logger.info("No evacuation data available AND stop condition satisfied — sending STOP.")
                     self.send_stop_message()
                 else:

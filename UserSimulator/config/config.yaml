@@ -13,7 +13,7 @@ user_file: "UserSimulator/config/current_position.csv"
 alert_event_type: "Earthquake"         # tipologia di allerta da assegnare a tutti gli utenti caricati
 
 
-n_users: 400  # Number of users to simulate upon receiving an "Alert" message
+n_users: 100  # Number of users to simulate upon receiving an "Alert" message
 speed_normal: 20.0
 speed_alert: 350.0
 simulation_tick: 1.0
