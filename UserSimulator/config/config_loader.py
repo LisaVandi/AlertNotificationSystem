@@ -13,6 +13,7 @@ class Config:
         self.timeout_after_stop: int = 60
         self.time_slots: List[Dict] = []
         
+        
         # Valori di default per RabbitMQ
         self.rabbitmq = {
             "host": "localhost",
@@ -38,6 +39,10 @@ class Config:
             self.simulation_tick = cfg.get("simulation_tick", self.simulation_tick)
             self.timeout_after_stop = cfg.get("timeout_after_stop", self.timeout_after_stop)
             self.time_slots = cfg.get("time_slots", self.time_slots)
+            self.simulation_mode = cfg.get("simulation_mode", "from_scratch")
+            self.user_file = cfg.get("user_file", None)
+            self.alert_event_type = cfg.get("alert_event_type", None)
+
             
             self._validate_config()
             logger.info(f"Configuration loaded: users={self.n_users}, tick={self.simulation_tick}s")

@@ -7,11 +7,17 @@ rabbitmq:
   evacuation_paths_queue: "evacuation_paths_queue"
   position_queue: "position_queue"
 
-n_users: 4  # Number of users to simulate upon receiving an "Alert" message
+
+simulation_mode: "from_scratch"     # "from_scratch" | "from_file"
+user_file: "UserSimulator/config/current_position.csv"
+alert_event_type: "Earthquake"         # tipologia di allerta da assegnare a tutti gli utenti caricati
+
+
+n_users: 400  # Number of users to simulate upon receiving an "Alert" message
 speed_normal: 20.0
 speed_alert: 350.0
 simulation_tick: 1.0
-timeout_after_stop: 15
+timeout_after_stop: 60
 
 
 time_slots:
