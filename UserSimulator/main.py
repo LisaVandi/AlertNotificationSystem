@@ -50,12 +50,21 @@ def on_startup():
         logger.error(f"RabbitMQ connection failed: {e}", exc_info=True)
         return
 
-    # Avvia i thread in background
+    # Avvia prima il simulatore
+    threading.Thread(target=simulator.run, daemon=True).start()
+    logger.info("Simulator thread started.")
+
+    # Attendi che l’inizializzazione utenti sia completata (max 10s)
+    import time
+    for _ in range(100):
+        if simulator.initialization_complete:
+            break
+        time.sleep(0.1)
+
+    # Poi avvia RabbitMQ
     threading.Thread(target=rabbitmq.start, daemon=True).start()
     logger.info("RabbitMQ consumer thread started.")
 
-    threading.Thread(target=simulator.run, daemon=True).start()
-    logger.info("Simulator thread started.")
 
 # Avvio diretto con uvicorn
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ UserSimulator/
 ├── config/                  # Configuration module
 │   ├── __init__.py
 │   ├── config.yaml          # YAML file containing service configuration
+│   ├── config_loader.py        
 │
 ├── rabbitmq/                # RabbitMQ communication module
 │   ├── __init__.py
@@ -14,12 +15,13 @@ UserSimulator/
 │
 ├── simulation/              # User simulation logic
 │   ├── __init__.py
-│   ├── user_simulator.py    # Core logic for simulating users and their positions
-│   ├── event_listener.py    # Listens for incoming events and triggers simulations
+│   ├── simulator.py    
+│   ├── user.py   
 │
 ├── utils/                   # Utility functions and helpers
 │   ├── __init__.py
 │   ├── logger.py            # Logging setup and custom logger
+│   ├── api.py          
 │
 ├── main.py                  # Entry point that orchestrates service startup and components
 └── requirements.txt         # Python dependencies for the project

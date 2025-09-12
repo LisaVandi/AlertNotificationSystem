@@ -1,7 +1,10 @@
+
 import pika
 import json
 import numpy as np
 import time
+import queue
+import threading
 import traceback
 from UserSimulator.utils.logger import logger
 
@@ -11,6 +14,7 @@ class RabbitMQHandler:
         self.simulator = simulator
         self.connection = None
         self.channel = None
+
 
     def connect(self):
         try:
@@ -132,7 +136,7 @@ class RabbitMQHandler:
                 received_user_ids.add(user_id)
 
                 path = item.get("evacuation_path", [])
-                user = self.simulator.users.get(user_id)
+                user = self.simulator.get_user(user_id)
                 if user:
                     user.set_evacuation_path(path)          # assegna / aggiorna il path
                 else:
