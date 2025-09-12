@@ -17,7 +17,7 @@ class PositionManagerConsumer:
         self.last_event = None
         self._stop_sent = False
 
-        # ---- PATCH: connessione RabbitMQ parametrizzata ----
+        # ---- Connessione RabbitMQ parametrizzata ----
         creds = pika.PlainCredentials(
             os.getenv("RABBITMQ_USER", "guest"),
             os.getenv("RABBITMQ_PASSWORD", "guest")
@@ -30,7 +30,7 @@ class PositionManagerConsumer:
             blocked_connection_timeout=300
         )
 
-        # Connessione principale per position_queue
+        # Connessione principale per position_queue / map_manager_queue / alerted_users_queue
         self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue='position_queue', durable=True)
@@ -42,7 +42,7 @@ class PositionManagerConsumer:
         self.ack_channel = self.ack_connection.channel()
         self.ack_channel.queue_declare(queue='ack_evacuation_computed', durable=True)
 
-        # Consumers
+        # Consumer posizioni
         self.channel.basic_consume(
             queue='position_queue',
             on_message_callback=self.process_message,
@@ -53,7 +53,7 @@ class PositionManagerConsumer:
         threading.Thread(target=self.periodic_flush, daemon=True).start()
         threading.Thread(target=self.start_ack_consumer, daemon=True).start()
 
-    # ---- PATCH: flush periodico anche senza nuove posizioni ----
+    # ---- flush periodico anche senza nuove posizioni ----
     def periodic_flush(self):
         while True:
             time.sleep(1)
@@ -83,6 +83,7 @@ class PositionManagerConsumer:
             # L'utente è in pericolo solo se il nodo non è sicuro
             danger = not node_safe
 
+            # Se torna un pericolo dopo uno STOP inviato, sblocca la possibilità di rimandarlo in futuro
             if danger and self._stop_sent:
                 logger.info("New user in danger detected — resetting STOP flag.")
                 self._stop_sent = False
@@ -91,14 +92,19 @@ class PositionManagerConsumer:
             self.db_manager.upsert_current_position(user_id, x, y, z, node_id, danger)
             self.db_manager.insert_historical_position(user_id, x, y, z, node_id, danger)
 
-            safe = self.db_manager.is_everyone_safe()
-            logger.info(f"is_everyone_safe = {safe}, _stop_sent = {getattr(self, '_stop_sent', False)}")
+            # --- NUOVA REGOLA: invio STOP solo se condizione storica soddisfatta per TUTTI ---
+            safe_to_stop = self.db_manager.is_stop_condition_satisfied()
+            logger.info(
+                f"is_stop_condition_satisfied = {safe_to_stop}, "
+                f"_stop_sent = {getattr(self, '_stop_sent', False)}"
+            )
 
-            if safe and not getattr(self, "_stop_sent", False):
+            if safe_to_stop and not getattr(self, "_stop_sent", False):
                 self.send_stop_message()
-                logger.info("Send Stop message")
+                logger.info("Send Stop message (all users safe now AND each has at least one historical safe).")
                 self._stop_sent = True
 
+            # Dispatch verso MapManager a batch
             self.processed_count += 1
             if self.processed_count >= self.dispatch_threshold:
                 self.send_aggregated_data(only_to_map_manager=True)
@@ -126,7 +132,7 @@ class PositionManagerConsumer:
         evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
         logger.info(
-            f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2) if evacuation_data else 'STOP message'}"
+            f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2) if evacuation_data else 'STOP check'}"
         )
         if evacuation_data:
             self.channel.basic_publish(
@@ -137,7 +143,11 @@ class PositionManagerConsumer:
             )
             logger.info("Sent evacuation data to alerted_users_queue.")
         else:
-            self.send_stop_message()
+            # --- NUOVA REGOLA: STOP solo se condizione storica soddisfatta ---
+            if self.db_manager.is_stop_condition_satisfied():
+                self.send_stop_message()
+            else:
+                logger.info("Evacuation data empty, but stop condition NOT satisfied — not sending STOP.")
 
     def aggregate_current_positions(self):
         aggregated_data = {}
@@ -194,8 +204,12 @@ class PositionManagerConsumer:
                 if not self.db_manager.is_everyone_safe():
                     evacuation_data = self.db_manager.get_aggregated_evacuation_data()
                     self.send_evacuation_data(evacuation_data)
-                else:
+                elif self.db_manager.have_all_current_users_been_safe_once():
                     self.send_stop_message()
+                else:
+                    logger.info(
+                        "All users currently safe, but at least one user has NO historical safe record — NOT sending STOP."
+                    )
             else:
                 logger.warning(f"Ignored unknown ack message type: {msg}")
         except Exception as e:
@@ -223,8 +237,12 @@ class PositionManagerConsumer:
                 evacuation_data = self.db_manager.get_aggregated_evacuation_data()
 
             if not evacuation_data:
-                logger.info("No evacuation data available, sending STOP message.")
-                self.send_stop_message()
+                # --- NUOVA REGOLA: STOP solo se condizione storica soddisfatta ---
+                if self.db_manager.is_stop_condition_satisfied():
+                    logger.info("No evacuation data available AND stop condition satisfied — sending STOP.")
+                    self.send_stop_message()
+                else:
+                    logger.info("No evacuation data available, BUT stop condition NOT satisfied — not sending STOP.")
                 return
 
             logger.info(f"Evacuation data being sent:\n{json.dumps(evacuation_data, indent=2)}")

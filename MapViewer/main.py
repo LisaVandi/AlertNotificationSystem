@@ -19,7 +19,7 @@ from datetime import datetime
 from MapViewer.app.services.graph_exporter import get_graph_json
 from MapViewer.app.services.graph_manager import graph_manager
 from MapViewer.app.config.settings import DATABASE_CONFIG, NODE_TYPES, Z_RANGES, SCALE_CONFIG
-from MapViewer.db.db_setup import create_tables
+from MapViewer.db.db_setup import create_tables, create_connection
 from MapViewer.app.services.height_mapper import HeightMapper
 
 USER_SIMULATOR_URL = "http://localhost:8001" 
@@ -30,7 +30,7 @@ async def clear_positions_on_startup():
     loop = asyncio.get_event_loop()
 
     def db_cleanup():
-        conn = psycopg2.connect(**DATABASE_CONFIG)
+        conn = create_connection()
         cur = conn.cursor()
         try:
             cur.execute("SELECT user_id, x, y, z, node_id, danger FROM user_historical_position")
@@ -111,7 +111,7 @@ def configuration_status():
     return JSONResponse({"configured": status})
 
 def preload_graphs():
-    conn = psycopg2.connect(**DATABASE_CONFIG)
+    conn = create_connection()
     cur = conn.cursor()
     try:
         with graph_manager.lock:
@@ -234,7 +234,7 @@ def get_graph(floor: int):
     }
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG)
-        cur = conn.cursor()
+        cur = create_connection()
         cur.execute("""
             SELECT node_id, (x1 + x2)/2 AS x, (y1 + y2)/2 AS y, node_type, current_occupancy, capacity, COALESCE(safe, TRUE) AS safe
             FROM nodes WHERE %s = ANY(floor_level)
@@ -289,7 +289,7 @@ def disable_edge(data: dict = Body(...)):
     if arc_id is None:
         raise HTTPException(status_code=400, detail="Missing arc_id")
 
-    conn = psycopg2.connect(**DATABASE_CONFIG)
+    conn = create_connection()
     cur = conn.cursor()
     try:
         cur.execute("UPDATE arcs SET active = FALSE WHERE arc_id = %s RETURNING arc_id", (arc_id,))

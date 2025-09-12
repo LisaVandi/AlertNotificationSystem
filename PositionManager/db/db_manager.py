@@ -229,6 +229,39 @@ class DBManager:
         except Exception as e:
             logger.error(f"Failed to retrieve safe flag for node {node_id}: {e}")
             return False
+        
+    def have_all_current_users_been_safe_once(self) -> bool:
+        """
+        Ritorna True se, per ogni utente attualmente presente in current_position,
+        esiste almeno UNA riga nello storico con danger = FALSE.
+        """
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM current_position cp
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM user_historical_position hp
+                        WHERE hp.user_id = cp.user_id
+                          AND hp.danger = FALSE
+                    );
+                """)
+                missing = cursor.fetchone()[0]
+                # True se NON esistono utenti privi di uno storico "safe"
+                return missing == 0
+        except Exception as e:
+            logger.error(f"Failed to check historical safety condition: {e}")
+            return False
+
+    def is_stop_condition_satisfied(self) -> bool:
+        """
+        Lo Stop si può inviare SOLO se:
+        1) nessun utente è in pericolo ORA (current_position)
+        2) ogni utente attuale ha almeno uno storico con danger = FALSE
+        """
+        return self.is_everyone_safe() and self.have_all_current_users_been_safe_once()
+
 
 
     def get_aggregated_evacuation_data(self):
