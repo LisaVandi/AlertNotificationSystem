@@ -200,7 +200,7 @@ class Simulator:
                     logger.error(f"Failed to publish position for user {user_id}: {e}")
 
             # Pubblico utente appena passato a salvo (salvo = stato "salvo")
-            if user.state == "salvo" and user_id not in getattr(self, "_already_published_salvo", set()):
+            if user.state == "salvo":
                 try:
                     position_msg = user.get_position_message()
                     self.publisher.publish_position(position_msg)

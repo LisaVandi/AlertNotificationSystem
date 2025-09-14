@@ -205,12 +205,26 @@ class User:
             self.moving_along_arc = False
             return False
         
-        if not self.moving_along_arc:
-            self.moving_along_arc = True
-            self.arc_progress = 0.0
-
         current_arc_id = self.evacuation_path[0]
         arc = self.find_arc_by_id(arcs, current_arc_id)
+        
+        if not self.moving_along_arc:
+            self.moving_along_arc = True
+
+            # Decidi la direzione in base al nodo corrente
+            if self.current_node == arc["initial_node"]:
+                self.movement_direction = 1
+                self.arc_progress = 0.0
+            elif self.current_node == arc["final_node"]:
+                self.movement_direction = -1
+                self.arc_progress = 1.0
+            else:
+                # Caso raro: l'utente non è su un estremo dell'arco.
+                # Forziamo la partenza dal nodo iniziale.
+                self.movement_direction = 1
+                self.arc_progress = 0.0
+
+        
         if arc is None:
             logger.warning(f"User {self.user_id} arc {current_arc_id} not found")
             self.moving_along_arc = False
@@ -224,7 +238,7 @@ class User:
             p2 = np.array([arc['x2'], arc['y2'], arc['z2']])
             dist_to_p1 = np.linalg.norm(pos - p1)
             dist_to_p2 = np.linalg.norm(pos - p2)
-            snap_threshold = 5.0
+            snap_threshold = 40.0
             
             if min(dist_to_p1, dist_to_p2) < snap_threshold:
                 self.current_node = arc['initial_node'] if dist_to_p1 < dist_to_p2 else arc['final_node']
@@ -337,7 +351,6 @@ class User:
             logger.info(f"User {self.user_id} received new evacuation path: {new_path}")
             self.evacuation_path = new_path.copy()
             self.moving_along_arc = False
-            self.arc_progress = 0.0
             self.blocked = False
             if self.state != "allerta":
                 self.state = "allerta"
